@@ -1,0 +1,33 @@
+package dev.mzc.client.manager;
+
+import dev.mzc.client.manager.impl.*;
+
+public class Managers {
+    private static boolean initialized;
+
+    public static AccountManager ACCOUNT;
+    public static ChatAnimationUpdater CHAT_ANIMATION;
+    public static ExtrapolationManager EXTRAPOLATION;
+    public static RenderManager RENDER;
+    public static RotationManager ROTATION;
+    public static SoundManager SOUND;
+    public static FriendManager FRIEND;
+    public static AntiSniperManager ANTI_SNIPER;
+    public static HomeManager HOME;
+
+    public static void init() {
+        if (initialized) return;
+
+        ACCOUNT = new AccountManager();
+        CHAT_ANIMATION = new ChatAnimationUpdater();
+        EXTRAPOLATION = new ExtrapolationManager();
+        RENDER = new RenderManager();
+        ROTATION = new RotationManager();
+        SOUND = new SoundManager();
+        FRIEND = new FriendManager();
+        ANTI_SNIPER = new AntiSniperManager();
+        HOME = new HomeManager();
+
+        initialized = true;
+    }
+}

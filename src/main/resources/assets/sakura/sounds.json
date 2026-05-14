@@ -1,0 +1,114 @@
+{
+  "enable": {
+    "sounds": [
+      {
+        "name": "sakura:augustus/enable",
+        "stream": false
+      }
+    ]
+  },
+  "disable": {
+    "sounds": [
+      {
+        "name": "sakura:augustus/disable",
+        "stream": false
+      }
+    ]
+  },
+  "activate": {
+    "sounds": [
+      {
+        "name": "sakura:jello/activate",
+        "stream": false
+      }
+    ]
+  },
+  "deactivate": {
+    "sounds": [
+      {
+        "name": "sakura:jello/deactivate",
+        "stream": false
+      }
+    ]
+  },
+  "music.lzxh": {
+    "sounds": [
+      {
+        "name": "sakura:music/lzxh",
+        "stream": true
+      }
+    ]
+  },
+  "music.wings_of_liberty": {
+    "sounds": [
+      {
+        "name": "sakura:music/wings_of_liberty",
+        "stream": true
+      }
+    ]
+  },
+  "music.romances_terminus": {
+    "sounds": [
+      {
+        "name": "sakura:music/romances_terminus",
+        "stream": true
+      }
+    ]
+  },
+  "music.tears": {
+    "sounds": [
+      {
+        "name": "sakura:music/tears",
+        "stream": true
+      }
+    ]
+  },
+  "music.glass_heart": {
+    "sounds": [
+      {
+        "name": "sakura:music/glass_heart",
+        "stream": true
+      }
+    ]
+  },
+  "music.gummybear": {
+    "sounds": [
+      {
+        "name": "sakura:music/gummybear",
+        "stream": true
+      }
+    ]
+  },
+  "music.feint_weavers": {
+    "sounds": [
+      {
+        "name": "sakura:music/feint_weavers",
+        "stream": true
+      }
+    ]
+  },
+  "music.nkddw": {
+    "sounds": [
+      {
+        "name": "sakura:music/nkddw",
+        "stream": true
+      }
+    ]
+  },
+  "music.uwu": {
+    "sounds": [
+      {
+        "name": "sakura:music/uwu",
+        "stream": true
+      }
+    ]
+  },
+  "music.seasons": {
+    "sounds": [
+      {
+        "name": "sakura:music/seasons",
+        "stream": true
+      }
+    ]
+  }
+}

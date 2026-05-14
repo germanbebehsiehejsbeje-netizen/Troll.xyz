@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "sakura",
+  "version": "${version}",
+  "name": "MZC",
+  "description": "MZCMod which can allow you to use fullbright",
+  "icon": "icon.png",
+  "authors": [
+    "MZC8865"
+  ],
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.mzc.client.Sakura"
+    ]
+  },
+  "mixins": [
+    "sakura.mixins.json"
+  ],
+  "accessWidener": "sakura.accesswidener",
+  "depends": {
+    "java": ">=21",
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "fabric-api": "*"
+  }
+}
