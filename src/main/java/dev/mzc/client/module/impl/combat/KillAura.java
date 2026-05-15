@@ -57,6 +57,7 @@ public class KillAura extends Module {
     public enum MoveCorrectionMode { Free, Stinc }
     public enum SprintResetMode { Normal, Legit, HvH, Packet }
     public enum AttackMode { V1_8, V1_9 }
+    public enum MaceKillMode { Off, Vanilla, Aggressive }
 
     private static KillAura INSTANCE;
 
@@ -84,6 +85,9 @@ public class KillAura extends Module {
     private final BoolValue noAttackWhenEat = new BoolValue("No Attack When Eat", true);
     private final BoolValue ignoreWalls = new BoolValue("Ignore Walls", false);
     private final BoolValue renderTarget = new BoolValue("Target ESP", true);
+    private final EnumValue<MaceKillMode> maceKillMode = new EnumValue<>("MaceKill Mode", MaceKillMode.Off);
+    private final NumberValue<Integer> maceKillHeight = new NumberValue<>("MaceKill Height", 15, 5, 50, 1, () -> maceKillMode.get() != MaceKillMode.Off);
+    private final NumberValue<Integer> maceKillPackets = new NumberValue<>("MaceKill Packets", 10, 3, 30, 1, () -> maceKillMode.get() != MaceKillMode.Off);
 
     private LivingEntity target;
     private LivingEntity lastTarget;
@@ -96,6 +100,8 @@ public class KillAura extends Module {
     private final NeuroEngine neuro = new NeuroEngine();
     private Rotation lastOut, lastDesired;
     private boolean attackedThisTick;
+    private boolean maceKillActive = false;
+    private int maceKillState = 0;
 
     public KillAura() {
         super("KillAura", Category.Combat);
@@ -112,6 +118,8 @@ public class KillAura extends Module {
         visualInitialized = false;
         lastOut = null;
         lastDesired = null;
+        maceKillState = 0;
+        maceKillActive = false;
     }
 
     @EventHandler
@@ -176,7 +184,11 @@ public class KillAura extends Module {
         
         attackedThisTick = false;
         if (target != null) {
-            tryAttack(target);
+            if (maceKillMode.get() != MaceKillMode.Off && isFlying()) {
+                executeMaceKill(target);
+            } else {
+                tryAttack(target);
+            }
         }
         
         if (lastOut != null && lastDesired != null) {
@@ -496,6 +508,60 @@ public class KillAura extends Module {
     private boolean isVisiblePoint(Vec3d p) { return mc.world.raycast(new RaycastContext(mc.player.getEyePos(), p, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player)).getType() == HitResult.Type.MISS; }
     private Vec3d toVector(float yaw, float pitch) { float f = pitch * 0.017453292F, g = -yaw * 0.017453292F; return new Vec3d(MathHelper.sin(g) * MathHelper.cos(f), -MathHelper.sin(f), MathHelper.cos(g) * MathHelper.cos(f)); }
     private Vec3d closestPoint(Vec3d eye, Box box) { return new Vec3d(MathHelper.clamp(eye.x, box.minX, box.maxX), MathHelper.clamp(eye.y, box.minY, box.maxY), MathHelper.clamp(eye.z, box.minZ, box.maxZ)); }
+
+    private void executeMaceKill(LivingEntity target) {
+        if (maceKillState == 0) {
+            // State 0: Move to high position above target
+            Vec3d targetPos = new Vec3d(target.getX(), target.getY(), target.getZ());
+            Vec3d highPos = new Vec3d(targetPos.x, targetPos.y + maceKillHeight.get(), targetPos.z);
+            
+            // Send multiple position packets to spoof being high up
+            int packets = maceKillPackets.get();
+            for (int i = 0; i < packets; i++) {
+                mc.player.networkHandler.sendPacket(
+                    new net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround(
+                        highPos.x, highPos.y, highPos.z, false, mc.player.horizontalCollision
+                    )
+                );
+            }
+            
+            // Set player position to high position
+            mc.player.setPosition(highPos);
+            maceKillState = 1;
+            return;
+        }
+        
+        if (maceKillState == 1) {
+            // State 1: Dive down to target and attack
+            Vec3d attackPos = new Vec3d(target.getX(), target.getY() + 0.5, target.getZ());
+            
+            // Send dive packets
+            int packets = maceKillPackets.get();
+            for (int i = 0; i < packets; i++) {
+                mc.player.networkHandler.sendPacket(
+                    new net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround(
+                        attackPos.x, attackPos.y, attackPos.z, false, mc.player.horizontalCollision
+                    )
+                );
+            }
+            
+            // Set position to attack
+            mc.player.setPosition(attackPos);
+            
+            // Execute attack
+            if (maceKillMode.get() == MaceKillMode.Aggressive) {
+                // Aggressive: multiple attacks
+                for (int i = 0; i < 3; i++) {
+                    tryAttack(target);
+                }
+            } else {
+                // Vanilla: single attack
+                tryAttack(target);
+            }
+            
+            maceKillState = 0;
+        }
+    }
 
     @EventHandler
     public void onRender(Render3DEvent event) {

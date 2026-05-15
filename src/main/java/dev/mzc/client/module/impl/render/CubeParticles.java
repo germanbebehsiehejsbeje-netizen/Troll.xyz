@@ -12,6 +12,7 @@ import dev.mzc.client.utils.math.MathUtil;
 import dev.mzc.client.utils.render.Render3DUtil;
 import dev.mzc.client.utils.time.TimerUtil;
 import dev.mzc.client.values.impl.BoolValue;
+import dev.mzc.client.values.impl.EnumValue;
 import dev.mzc.client.values.impl.NumberValue;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.render.*;
@@ -27,6 +28,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CubeParticles extends Module {
+    public enum ShapeMode {
+        CUBE("Cube"),
+        PRISM("Prism"),
+        PYRAMID("Pyramid"),
+        OCTAHEDRON("Octahedron"),
+        SPHERE("Sphere");
+
+        private final String name;
+
+        ShapeMode(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private final EnumValue<ShapeMode> shapeMode = new EnumValue<>("Shape", ShapeMode.CUBE, ShapeMode.class);
     private final NumberValue<Integer> count = new NumberValue<>("Count", 20, 1, 100, 1);
     private final NumberValue<Double> size = new NumberValue<>("Size", 0.1, 0.01, 1.0, 0.01);
     private final NumberValue<Integer> lifeTime = new NumberValue<>("LifeTime", 60000, 5000, 300000, 5000);
@@ -240,7 +261,7 @@ public class CubeParticles extends Module {
                 renderGlow(matrixStack, halfSize * glowSize, color, alpha, tickDelta);
             }
 
-            renderCube(matrixStack, halfSize, color);
+            renderShape(matrixStack, halfSize, color);
 
             matrixStack.pop();
         }
@@ -308,6 +329,165 @@ public class CubeParticles extends Module {
             vertexLine(buf, matrix, entry, s, -s, -s, s, s, -s, r, g, b, a);
             vertexLine(buf, matrix, entry, s, -s, s, s, s, s, r, g, b, a);
             vertexLine(buf, matrix, entry, -s, -s, s, -s, s, s, r, g, b, a);
+
+            RenderLayers.lines().draw(buf.end());
+            Render3DUtil.cleanup3D();
+        }
+
+        private void renderShape(MatrixStack matrixStack, float size, Color color) {
+            switch (shapeMode.get()) {
+                case CUBE -> renderCube(matrixStack, size, color);
+                case PRISM -> renderPrism(matrixStack, size, color);
+                case PYRAMID -> renderPyramid(matrixStack, size, color);
+                case OCTAHEDRON -> renderOctahedron(matrixStack, size, color);
+                case SPHERE -> renderSphere(matrixStack, size, color);
+            }
+        }
+
+        private void renderPrism(MatrixStack matrixStack, float size, Color color) {
+            Matrix4f matrix = matrixStack.peek().getPositionMatrix();
+            MatrixStack.Entry entry = matrixStack.peek();
+            float s = size;
+
+            Render3DUtil.setup3D();
+
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder buf = tessellator.begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH);
+            int r = color.getRed(), g = color.getGreen(), b = color.getBlue(), a = color.getAlpha();
+
+            // Triangular prism vertices
+            // Bottom triangle
+            float h = s * 0.866f; // height of equilateral triangle
+            vertexLine(buf, matrix, entry, 0, -s, -h, -s, -s, h * 0.5f, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, -s, h * 0.5f, s, -s, h * 0.5f, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, h * 0.5f, 0, -s, -h, r, g, b, a);
+
+            // Top triangle
+            vertexLine(buf, matrix, entry, 0, s, -h, -s, s, h * 0.5f, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, s, h * 0.5f, s, s, h * 0.5f, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, s, h * 0.5f, 0, s, -h, r, g, b, a);
+
+            // Vertical edges
+            vertexLine(buf, matrix, entry, 0, -s, -h, 0, s, -h, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, -s, h * 0.5f, -s, s, h * 0.5f, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, h * 0.5f, s, s, h * 0.5f, r, g, b, a);
+
+            RenderLayers.lines().draw(buf.end());
+            Render3DUtil.cleanup3D();
+        }
+
+        private void renderPyramid(MatrixStack matrixStack, float size, Color color) {
+            Matrix4f matrix = matrixStack.peek().getPositionMatrix();
+            MatrixStack.Entry entry = matrixStack.peek();
+            float s = size;
+
+            Render3DUtil.setup3D();
+
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder buf = tessellator.begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH);
+            int r = color.getRed(), g = color.getGreen(), b = color.getBlue(), a = color.getAlpha();
+
+            // Square base
+            vertexLine(buf, matrix, entry, -s, -s, -s, s, -s, -s, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, -s, s, -s, s, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, s, -s, -s, s, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, -s, s, -s, -s, -s, r, g, b, a);
+
+            // Edges to apex
+            vertexLine(buf, matrix, entry, -s, -s, -s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, -s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, -s, s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, -s, s, 0, s, 0, r, g, b, a);
+
+            RenderLayers.lines().draw(buf.end());
+            Render3DUtil.cleanup3D();
+        }
+
+        private void renderOctahedron(MatrixStack matrixStack, float size, Color color) {
+            Matrix4f matrix = matrixStack.peek().getPositionMatrix();
+            MatrixStack.Entry entry = matrixStack.peek();
+            float s = size;
+
+            Render3DUtil.setup3D();
+
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder buf = tessellator.begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH);
+            int r = color.getRed(), g = color.getGreen(), b = color.getBlue(), a = color.getAlpha();
+
+            // Top pyramid
+            vertexLine(buf, matrix, entry, -s, 0, -s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, -s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, s, 0, s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, 0, s, 0, s, 0, r, g, b, a);
+
+            // Bottom pyramid
+            vertexLine(buf, matrix, entry, -s, 0, -s, 0, -s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, -s, 0, -s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, s, 0, -s, 0, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, 0, s, 0, -s, 0, r, g, b, a);
+
+            // Middle square
+            vertexLine(buf, matrix, entry, -s, 0, -s, s, 0, -s, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, -s, s, 0, s, r, g, b, a);
+            vertexLine(buf, matrix, entry, s, 0, s, -s, 0, s, r, g, b, a);
+            vertexLine(buf, matrix, entry, -s, 0, s, -s, 0, -s, r, g, b, a);
+
+            RenderLayers.lines().draw(buf.end());
+            Render3DUtil.cleanup3D();
+        }
+
+        private void renderSphere(MatrixStack matrixStack, float size, Color color) {
+            Matrix4f matrix = matrixStack.peek().getPositionMatrix();
+            MatrixStack.Entry entry = matrixStack.peek();
+            float s = size;
+
+            Render3DUtil.setup3D();
+
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder buf = tessellator.begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH);
+            int r = color.getRed(), g = color.getGreen(), b = color.getBlue(), a = color.getAlpha();
+
+            // Render sphere using wireframe circles
+            int segments = 16;
+            
+            // Horizontal circles (latitude)
+            for (int lat = 0; lat <= 4; lat++) {
+                float angle = (float) (lat * Math.PI / 4) - (float) (Math.PI / 2);
+                float y = (float) Math.sin(angle) * s;
+                float radius = (float) Math.cos(angle) * s;
+                
+                for (int i = 0; i <= segments; i++) {
+                    float theta1 = (float) (i * 2 * Math.PI / segments);
+                    float theta2 = (float) ((i + 1) * 2 * Math.PI / segments);
+                    
+                    float x1 = (float) Math.cos(theta1) * radius;
+                    float z1 = (float) Math.sin(theta1) * radius;
+                    float x2 = (float) Math.cos(theta2) * radius;
+                    float z2 = (float) Math.sin(theta2) * radius;
+                    
+                    vertexLine(buf, matrix, entry, x1, y, z1, x2, y, z2, r, g, b, a);
+                }
+            }
+            
+            // Vertical circles (longitude)
+            for (int lon = 0; lon < 4; lon++) {
+                float baseAngle = (float) (lon * Math.PI / 4);
+                
+                for (int i = 0; i <= segments; i++) {
+                    float phi1 = (float) (i * Math.PI / segments) - (float) (Math.PI / 2);
+                    float phi2 = (float) ((i + 1) * Math.PI / segments) - (float) (Math.PI / 2);
+                    
+                    float x1 = (float) Math.cos(baseAngle) * (float) Math.cos(phi1) * s;
+                    float y1 = (float) Math.sin(phi1) * s;
+                    float z1 = (float) Math.sin(baseAngle) * (float) Math.cos(phi1) * s;
+                    
+                    float x2 = (float) Math.cos(baseAngle) * (float) Math.cos(phi2) * s;
+                    float y2 = (float) Math.sin(phi2) * s;
+                    float z2 = (float) Math.sin(baseAngle) * (float) Math.cos(phi2) * s;
+                    
+                    vertexLine(buf, matrix, entry, x1, y1, z1, x2, y2, z2, r, g, b, a);
+                }
+            }
 
             RenderLayers.lines().draw(buf.end());
             Render3DUtil.cleanup3D();

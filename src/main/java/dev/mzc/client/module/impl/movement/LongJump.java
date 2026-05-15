@@ -85,8 +85,8 @@ public class LongJump extends Module {
         if (nullCheck()) return;
 
         // Intercept explosion packet
-        if (event.getType() == EventType.RECEIVE && event.getPacket() instanceof ExplosionS2CPacket explosionPacket) {
-            IExplosionS2CPacket accessor = (IExplosionS2CPacket) explosionPacket;
+        if (event.getType() == EventType.RECEIVE && event.getPacket() instanceof ExplosionS2CPacket) {
+            IExplosionS2CPacket accessor = (IExplosionS2CPacket) event.getPacket();
             
             // Check if explosion affects player and validate it's from damage
             if (accessor.getPlayerKnockback().isPresent() && mc.player.hurtTime > 0) {

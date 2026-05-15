@@ -388,6 +388,7 @@
   "module.hvh_aimbot": "HvHAimbot",
   "module.edge_bug": "EdgeBug",
   "module.legit_strafe": "LegitStrafe",
+  "module.long_jump": "LongJump",
   "module.movement_helper": "Bewegungshelfer",
   "module.pixel_surf": "PixelSurf",
   "module.anti_aim": "AntiAim",

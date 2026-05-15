@@ -189,6 +189,7 @@ public class ModuleManager {
         add(new Fov());
         add(new Fireflies());
         add(new CubeParticles());
+        add(new GhostLines());
         add(new BedTrap());
 
         // Client

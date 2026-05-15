@@ -1,0 +1,13 @@
+1 Autocombat的攻击时序问题导致GrimAC爆Post
+2 ClickGUI的设置)配置)项展开的动画卡顿还有点生硬
+3 cgui的背景模糊开关问题、
+4 drawFullBox绘制问题
+5 drawFullBox渐变生硬
+6 灵动岛多提示状态下的第二个提示出现的动画不流畅，使用用tab键后灵动岛宽度增加问题
+7 Animations的一些模式渲染位置问题
+8 HandItemOutline模块无法使用
+9 cgui的全局字体无法使用
+10 MoVeFix需要重写
+11 移动轨迹渲染模块的渐变生硬（可能是drawFullBox导致的？）
+12 AutoClicker要加特定情况不触发    已经修复
+13 BackTrack空刀
