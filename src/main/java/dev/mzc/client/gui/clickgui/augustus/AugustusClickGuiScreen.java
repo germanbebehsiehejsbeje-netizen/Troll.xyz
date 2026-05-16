@@ -75,9 +75,10 @@ public class AugustusClickGuiScreen extends ClickGuiScreen {
                     NanoVGHelper.drawRect(x, catY - 10, 3, 30, color);
                 }
                 
-                // Icon + Name
-                NanoVGHelper.drawString(category.icon, x + 15, catY + 10, FontLoader.icons(16), 16, color);
-                NanoVGHelper.drawString(category.name().toUpperCase(), x + 40, catY + 10, FontLoader.regular(13), 13, color);
+                // Icon + Name (badcache icon font)
+                String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+                NanoVGHelper.drawString(icon, x + 15, catY + 12, FontLoader.badcache(20), 20, color);
+                NanoVGHelper.drawString(category.name().toUpperCase(), x + 45, catY + 10, FontLoader.regular(13), 13, color);
                 catY += 35;
             }
 

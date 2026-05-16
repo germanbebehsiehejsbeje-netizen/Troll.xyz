@@ -207,7 +207,9 @@ public class MZCClickGuiScreen extends Screen {
                      NanoVGHelper.drawRoundRect(x + 5, catY, sidebarWidth - 10, 25, 5, new Color(40, 40, 40));
                 }
 
-                NanoVGHelper.drawString(category.name(), x + 15, catY + 18, FontLoader.regular(16), 16, color);
+                String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+                NanoVGHelper.drawString(icon, x + 15, catY + 19, FontLoader.badcache(16), 16, color);
+                NanoVGHelper.drawString(category.name(), x + 35, catY + 18, FontLoader.regular(15), 15, color);
                 catY += 35;
             }
             

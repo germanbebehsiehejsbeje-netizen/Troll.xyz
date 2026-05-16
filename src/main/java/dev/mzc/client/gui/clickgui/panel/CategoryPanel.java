@@ -167,9 +167,11 @@ public class CategoryPanel implements IComponent {
             String title = category == Category.Search ? (searchText.isEmpty() ? (typing ? "_" : "Search...") : searchText + (typing ? "_" : "")) : category.getName();
             NanoVGHelper.drawString(title, x + 8 * guiScale, y + 15f * guiScale, FontLoader.bold(baseFontSize + 1), baseFontSize + 1, SakuraTheme.TEXT);
             
-            // Icon
-            float iconSize = baseFontSize * 1.6f;
-            NanoVGHelper.drawString(category.icon, x + scaledWidth - NanoVGHelper.getTextWidth(category.icon, FontLoader.icons(iconSize), iconSize) - 10 * guiScale, y + 16f * guiScale, FontLoader.icons(iconSize), iconSize, isSakura ? SakuraTheme.PRIMARY : mainColor);
+            // Icon (badcache font for all GUIs)
+            float iconSize = baseFontSize * 1.8f;
+            String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+            int iconFont = FontLoader.badcache(iconSize);
+            NanoVGHelper.drawString(icon, x + scaledWidth - NanoVGHelper.getTextWidth(icon, iconFont, iconSize) - 10 * guiScale, y + 16f * guiScale, iconFont, iconSize, isSakura ? SakuraTheme.PRIMARY : mainColor);
         });
 
         for (ModuleComponent component : moduleComponents) {
