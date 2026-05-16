@@ -77,7 +77,7 @@ public class ModuleManager {
         add(new AutoWTap());
         add(new Velocity());
         add(new FastStairs());
-        add(new GuiMove());
+        add(new InventoryMove());
         add(new BetterSneak());
         add(new Fly());
         add(new ElytraFly());
