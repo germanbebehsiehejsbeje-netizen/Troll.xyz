@@ -65,6 +65,7 @@ public class ModuleManager {
         add(new AutoCrystal());
         add(new TimerRange());
         add(new ElytraTargetModule());
+        add(new Teams());
 
         // Movement
         add(new AutoSprint());

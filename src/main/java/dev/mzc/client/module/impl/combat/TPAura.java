@@ -112,8 +112,7 @@ public class TPAura extends Module {
     }
 
     private boolean isTeammate(PlayerEntity entity) {
-        // Implement simple team check logic if available or just return false
-        return false; 
+        return Teams.getInstance() != null && Teams.getInstance().isTeammate(entity);
     }
 
     private void hitEntity() {

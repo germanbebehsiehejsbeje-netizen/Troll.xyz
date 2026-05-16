@@ -8,10 +8,7 @@ import dev.mzc.client.utils.player.InvUtil;
 import net.minecraft.enchantment.Enchantments;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.player.PlayerEntity;
@@ -205,26 +202,7 @@ public class MaceSwap extends Module {
 
     private boolean isEnemy(Entity entity) {
         if (!teamCheck.get()) return true;
-        if (!(entity instanceof PlayerEntity player)) return true;
-        if (mc.player == null) return false;
-
-        int myColor = getLeatherArmorColor(mc.player);
-        int theirColor = getLeatherArmorColor(player);
-
-        if (myColor == -1 || theirColor == -1) return true;
-
-        return myColor != theirColor;
-    }
-
-    private int getLeatherArmorColor(PlayerEntity player) {
-        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            ItemStack stack = player.getEquippedStack(slot);
-            if (stack.isEmpty()) continue;
-            DyedColorComponent dyed = stack.get(DataComponentTypes.DYED_COLOR);
-            if (dyed != null) {
-                return dyed.rgb();
-            }
-        }
-        return -1;
+        if (Teams.getInstance() != null && Teams.getInstance().isTeammate(entity)) return false;
+        return true;
     }
 }

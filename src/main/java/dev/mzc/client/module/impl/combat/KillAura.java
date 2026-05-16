@@ -265,6 +265,7 @@ public class KillAura extends Module {
         if (e == mc.player || !e.isAlive()) return false;
         if (e instanceof PlayerEntity p) {
             if (!targetPlayers.get()) return false;
+            if (Teams.getInstance() != null && Teams.getInstance().isTeammate(p)) return false;
             return targetFriends.get() || Managers.FRIEND == null || !Managers.FRIEND.isFriend(p.getName().getString());
         }
         return targetMobs.get();
