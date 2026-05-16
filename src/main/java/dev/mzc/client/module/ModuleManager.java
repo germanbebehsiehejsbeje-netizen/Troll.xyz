@@ -9,6 +9,7 @@ import dev.mzc.client.manager.Managers;
 import dev.mzc.client.manager.impl.NotificationManager;
 import dev.mzc.client.module.impl.client.*;
 import dev.mzc.client.module.impl.combat.*;
+import dev.mzc.client.module.impl.combat.elytratarget.ElytraTargetModule;
 import dev.mzc.client.module.impl.hud.*;
 import dev.mzc.client.module.impl.misc.*;
 import dev.mzc.client.module.impl.movement.*;
@@ -63,10 +64,11 @@ public class ModuleManager {
         add(new SpinKB());
         add(new AutoCrystal());
         add(new TimerRange());
+        add(new ElytraTargetModule());
 
         // Movement
         add(new AutoSprint());
-        //add(new MoveFix());
+        add(new MoveFix());
         add(new Step());
         add(new NoJumpDelay());
         add(new AntiBlockPush());

@@ -6,13 +6,17 @@ import dev.mzc.client.events.packet.PacketEvent;
 import dev.mzc.client.events.client.TickEvent;
 import dev.mzc.client.module.Category;
 import dev.mzc.client.module.Module;
+import dev.mzc.client.values.impl.BoolValue;
 import dev.mzc.client.values.impl.EnumValue;
+import dev.mzc.client.utils.player.PlayerUtil;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
+import net.minecraft.scoreboard.Team;
 
 import java.util.*;
 
@@ -27,6 +31,13 @@ public class AntiBot extends Module {
     public static Set<UUID> botSet = new HashSet<>();
     
     private final EnumValue<Mode> mode = new EnumValue<>("Mode", Mode.ReallyWorld);
+    
+    // MiaWare settings
+    private final BoolValue requireTabEntry = new BoolValue("RequireTab", true);
+    private final BoolValue numericNames = new BoolValue("NumericNames", true);
+    private final BoolValue invalidName = new BoolValue("InvalidName", true);
+    private final BoolValue zeroPing = new BoolValue("ZeroPing", false);
+    private final BoolValue emptyTeam = new BoolValue("EmptyTeam", false);
     
     private static final EquipmentSlot[] ARMOR_SLOTS = new EquipmentSlot[]{
         EquipmentSlot.HEAD,
@@ -216,6 +227,43 @@ public class AntiBot extends Module {
         AntiBot antiBot = Sakura.MODULES == null ? null : Sakura.MODULES.getModule(AntiBot.class);
         if (antiBot == null || !antiBot.isEnabled()) return false;
         
+        if (Sakura.mc.player != null && entity == Sakura.mc.player) {
+            return false;
+        }
+        
+        // MiaWare detection methods
+        String name = PlayerUtil.sanitizeDisplayText(entity.getGameProfile().name());
+        
+        if (antiBot.numericNames.get() && !name.isBlank() && !PlayerUtil.hasLetters(name)) {
+            return true;
+        }
+        
+        if (antiBot.invalidName.get() && !PlayerUtil.isValidName(name)) {
+            return true;
+        }
+        
+        PlayerListEntry entry = Sakura.mc.getNetworkHandler() != null ? 
+            Sakura.mc.getNetworkHandler().getPlayerListEntry(entity.getUuid()) : null;
+            
+        if (antiBot.requireTabEntry.get() && entry == null) {
+            return true;
+        }
+        
+        if (entry != null) {
+            if (antiBot.zeroPing.get() && entry.getLatency() <= 0) {
+                return true;
+            }
+            
+            if (antiBot.emptyTeam.get()) {
+                Team team = entry.getScoreboardTeam();
+                if (team == null && (entry.getDisplayName() == null || 
+                    PlayerUtil.sanitizeDisplayText(entry.getDisplayName().getString()).isBlank())) {
+                    return true;
+                }
+            }
+        }
+        
+        // Original MZC detection methods
         String playerName = entity.getName().getString();
         boolean isNameBot = playerName.startsWith("CIT-") && 
                            !playerName.contains("NPC") && 
@@ -232,6 +280,15 @@ public class AntiBot extends Module {
 
     public static boolean isBot(UUID uuid) {
         return botSet.contains(uuid);
+    }
+    
+    public boolean isBotName(String name) {
+        if (!isEnabled() || !numericNames.get()) {
+            return false;
+        }
+        
+        String sanitized = PlayerUtil.sanitizeDisplayText(name);
+        return !sanitized.isBlank() && !PlayerUtil.hasLetters(sanitized);
     }
 
     public void reset() {

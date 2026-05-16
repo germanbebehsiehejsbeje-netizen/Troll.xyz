@@ -1,6 +1,8 @@
 package dev.mzc.client.utils.player;
 
 import dev.mzc.client.events.input.MoveInputEvent;
+import dev.mzc.client.module.impl.movement.MoveFix;
+import dev.mzc.client.Sakura;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.util.math.MathHelper;
 
@@ -172,6 +174,19 @@ public class MovementUtil {
         float strafe = event.getStrafe();
         
         if (forward == 0 && strafe == 0) return;
+
+        // Check if enhanced MoveFix module is enabled
+        MoveFix moveFix = Sakura.MODULES.getModule(MoveFix.class);
+        if (moveFix != null && moveFix.isEnabled()) {
+            DirectionalInput input = new DirectionalInput(forward, strafe);
+            float clientYaw = mc.player.getYaw();
+            
+            DirectionalInput corrected = moveFix.correctInput(input, clientYaw, auraYaw);
+            
+            event.setForward(corrected.isForwards() ? 1.0f : (corrected.isBackwards() ? -1.0f : 0.0f));
+            event.setStrafe(corrected.isLeft() ? 1.0f : (corrected.isRight() ? -1.0f : 0.0f));
+            return;
+        }
 
         // "Stinc" режим: при любом вводе мы движемся строго на цель (Server Yaw)
         // Это делается путем подмены входного вектора на (1, 0)

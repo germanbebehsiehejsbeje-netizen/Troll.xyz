@@ -54,7 +54,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class KillAura extends Module {
 
     public enum RotationMode { Slide, Resolver, Snap, Neuro, Packet, Polar, Grim, Smooth, HolyWorld, NoRot }
-    public enum MoveCorrectionMode { Free, Stinc }
     public enum SprintResetMode { Normal, Legit, HvH, Packet }
     public enum AttackMode { V1_8, V1_9 }
     public enum MaceKillMode { Off, Vanilla, Aggressive }
@@ -69,7 +68,6 @@ public class KillAura extends Module {
     private final BoolValue elytraPrediction = new BoolValue("Elytra Prediction", true);
     private final NumberValue<Integer> forwardValue = new NumberValue<>("Forward Value", 3, 1, 6, 1);
 
-    private final EnumValue<MoveCorrectionMode> moveCorrection = new EnumValue<>("Move Correction", MoveCorrectionMode.Stinc);
     private final EnumValue<SprintResetMode> sprintReset = new EnumValue<>("Sprint Reset", SprintResetMode.Packet);
 
     private final BoolValue targetPlayers = new BoolValue("Players", true);
@@ -109,6 +107,8 @@ public class KillAura extends Module {
     }
 
     public static KillAura getInstance() { return INSTANCE; }
+    
+    public LivingEntity getTarget() { return target; }
 
     @Override
     protected void onDisable() {
@@ -171,7 +171,7 @@ public class KillAura extends Module {
 
         RotationManager.Priority priority = (rotationMode.is(RotationMode.Packet) || rotationMode.is(RotationMode.Polar) || rotationMode.is(RotationMode.Grim) || rotationMode.is(RotationMode.HolyWorld)) ? RotationManager.Priority.Highest : RotationManager.Priority.High;
         
-        MovementFix fix = isFlying() ? MovementFix.OFF : (moveCorrection.is(MoveCorrectionMode.Stinc) ? MovementFix.GRIM : MovementFix.NORMAL);
+        MovementFix fix = isFlying() ? MovementFix.OFF : MovementFix.GRIM;
         Managers.ROTATION.setRotations(out, 100, fix, priority);
 
         if (!visualInitialized) { visualYaw = out.yaw; visualPitch = out.pitch; visualInitialized = true; }

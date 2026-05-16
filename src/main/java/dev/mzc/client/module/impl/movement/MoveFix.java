@@ -8,7 +8,10 @@ import dev.mzc.client.events.player.TravelEvent;
 import dev.mzc.client.events.player.UpdateVelocityEvent;
 import dev.mzc.client.module.Category;
 import dev.mzc.client.module.Module;
-import dev.mzc.client.module.impl.client.ClickGui;
+import dev.mzc.client.module.impl.combat.KillAura;
+import dev.mzc.client.utils.player.DirectionalInput;
+import dev.mzc.client.utils.player.MovementFixHelper;
+import dev.mzc.client.utils.player.MovementUtil;
 import dev.mzc.client.values.impl.BoolValue;
 import dev.mzc.client.values.impl.EnumValue;
 import meteordevelopment.orbit.EventHandler;
@@ -16,13 +19,22 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 public class MoveFix extends Module {
-    public MoveFix() {
-        super("MoveFix", Category.Movement);
+    public enum Mode {
+        Free,
+        Focused,
+        Targeted
     }
 
-    public final EnumValue<UpdateMode> updateMode = new EnumValue<>("Update Mode", UpdateMode.UpdateMouse);
-    public final BoolValue grim = new BoolValue("Grim", true);
+    private final EnumValue<Mode> mode = new EnumValue<>("Mode", Mode.Focused);
+    private final EnumValue<UpdateMode> updateMode = new EnumValue<>("Update Mode", UpdateMode.UpdateMouse);
+    private final BoolValue targeting = new BoolValue("Targeting", true);
+    private final BoolValue grim = new BoolValue("Grim", false);
     private final BoolValue travel = new BoolValue("Travel", false, grim::get);
+
+    public MoveFix() {
+        super("MoveFix", Category.Movement);
+        this.setType(ModuleType.Safe);
+    }
 
     public enum UpdateMode {
         MovementPacket(),
@@ -162,5 +174,110 @@ public class MoveFix extends Module {
 
     public static boolean isActive() {
         return Sakura.MODULES.getModule(MoveFix.class).isEnabled();
+    }
+
+    public DirectionalInput correctInput(DirectionalInput input, float playerYaw, float targetYaw) {
+        if (!isEnabled() || input == null || !input.isMoving()) {
+            return input;
+        }
+
+        float forward = input.isForwards() ? 1.0f : (input.isBackwards() ? -1.0f : 0.0f);
+        float sideways = input.isLeft() ? 1.0f : (input.isRight() ? -1.0f : 0.0f);
+
+        if (forward == 0.0f && sideways == 0.0f) {
+            return input;
+        }
+
+        float deltaYaw = MathHelper.wrapDegrees(playerYaw - targetYaw) * 0.017453292f;
+        float correctedForward = forward * MathHelper.cos(deltaYaw) - sideways * MathHelper.sin(deltaYaw);
+        float correctedSideways = sideways * MathHelper.cos(deltaYaw) + forward * MathHelper.sin(deltaYaw);
+
+        if (isFree()) {
+            return new DirectionalInput(Math.round(correctedForward), Math.round(correctedSideways));
+        }
+
+        double angleToTarget = computeAngleToTarget();
+        if (isTargeted() && !Double.isNaN(angleToTarget)) {
+            return MovementFixHelper.findBestInput(
+                    correctedForward,
+                    correctedSideways,
+                    (forwardValue, strafeValue) -> getTargetedPenalty(forwardValue, strafeValue, targetYaw, angleToTarget, correctedForward, correctedSideways)
+            );
+        }
+
+        return MovementFixHelper.findBestInput(
+                correctedForward,
+                correctedSideways,
+                (forwardValue, strafeValue) -> getTargetingPenalty(forwardValue, strafeValue, targetYaw)
+        );
+    }
+
+    private double getTargetingPenalty(float forward, float strafe, float targetYaw) {
+        if (!targeting.get() || KillAura.getInstance() == null || !KillAura.getInstance().isEnabled() || 
+            KillAura.getInstance().getTarget() == null || mc.player == null) {
+            return 0.0;
+        }
+
+        Vec3d targetPos = KillAura.getInstance().getTarget().getEyePos();
+        double deltaX = targetPos.x - mc.player.getX();
+        double deltaZ = targetPos.z - mc.player.getZ();
+        double angleToTarget = MathHelper.wrapDegrees((float) (Math.toDegrees(Math.atan2(deltaZ, deltaX)) - 90.0));
+        double moveAngle = MathHelper.wrapDegrees((float) Math.toDegrees(MovementUtil.getDirection(targetYaw, forward, strafe)));
+        return Math.abs(MathHelper.wrapDegrees((float) (angleToTarget - moveAngle))) * 0.0015;
+    }
+
+    private double getTargetedPenalty(float forward, float strafe, float targetYaw, double angleToTarget, float desiredForward, float desiredStrafe) {
+        if (KillAura.getInstance() == null || !KillAura.getInstance().isEnabled() || 
+            KillAura.getInstance().getTarget() == null || mc.player == null) {
+            return 0.0;
+        }
+
+        float intentForward = Math.abs(desiredForward) < 0.01f ? 0.0f : Math.signum(desiredForward);
+        float intentStrafe = Math.abs(desiredStrafe) < 0.01f ? 0.0f : Math.signum(desiredStrafe);
+        if (intentForward == 0.0f && intentStrafe == 0.0f) {
+            intentForward = 1.0f;
+        }
+
+        double desiredAngle = MathHelper.wrapDegrees((float) Math.toDegrees(MovementUtil.getDirection((float) angleToTarget, intentForward, intentStrafe)));
+        double moveAngle = MathHelper.wrapDegrees((float) Math.toDegrees(MovementUtil.getDirection(targetYaw, forward, strafe)));
+        double orbitPenalty = Math.abs(MathHelper.wrapDegrees((float) (desiredAngle - moveAngle))) * 0.0095;
+        double targetPenalty = Math.abs(MathHelper.wrapDegrees((float) (angleToTarget - moveAngle))) * 0.00125;
+        return orbitPenalty + targetPenalty;
+    }
+
+    private double computeAngleToTarget() {
+        if (KillAura.getInstance() == null || KillAura.getInstance().getTarget() == null || mc.player == null) {
+            return Double.NaN;
+        }
+
+        Vec3d targetPos = KillAura.getInstance().getTarget().getEyePos();
+        double deltaX = targetPos.x - mc.player.getX();
+        double deltaZ = targetPos.z - mc.player.getZ();
+        return MathHelper.wrapDegrees((float) (Math.toDegrees(Math.atan2(deltaZ, deltaX)) - 90.0));
+    }
+
+    public static boolean isTargeting() {
+        MoveFix instance = Sakura.MODULES.getModule(MoveFix.class);
+        return instance.isEnabled() && !instance.isFree() && instance.targeting.get() && 
+               KillAura.getInstance() != null && KillAura.getInstance().isEnabled();
+    }
+
+    public static boolean isFree() {
+        MoveFix instance = Sakura.MODULES.getModule(MoveFix.class);
+        return instance.isEnabled() && instance.mode.get() == Mode.Free;
+    }
+
+    public static boolean isFocused() {
+        MoveFix instance = Sakura.MODULES.getModule(MoveFix.class);
+        return instance.isEnabled() && instance.mode.get() == Mode.Focused;
+    }
+
+    public static boolean isTargeted() {
+        MoveFix instance = Sakura.MODULES.getModule(MoveFix.class);
+        return instance.isEnabled() && instance.mode.get() == Mode.Targeted;
+    }
+
+    public boolean isGrimEnabled() {
+        return grim.get();
     }
 }

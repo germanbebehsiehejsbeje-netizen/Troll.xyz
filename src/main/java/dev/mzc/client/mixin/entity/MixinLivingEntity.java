@@ -73,7 +73,7 @@ public abstract class MixinLivingEntity extends Entity {
             }
 
             MoveFix moveFix = Sakura.MODULES.getModule(MoveFix.class);
-            if (!sprinting && moveFix != null && moveFix.isEnabled() && moveFix.grim.get()) {
+            if (!sprinting && moveFix != null && moveFix.isEnabled() && moveFix.isGrimEnabled()) {
                 if (mc.options.sprintKey.isPressed() && (mc.player.forwardSpeed != 0 || mc.player.sidewaysSpeed != 0)) {
                     // Don't stop sprinting if MoveFix is active, we are moving, and sprint key is held
                     // unless we have hunger or other issues (vanilla handles those before calling setSprinting,
