@@ -128,6 +128,26 @@ public abstract class MixinLivingEntity extends Entity {
         }
     }
 
+    /**
+     * Silent move fix for elytra: redirect {@code getPitch()} inside the gliding-velocity
+     * calculation so the server's pitch (from {@link dev.mzc.client.manager.impl.RotationManager})
+     * drives the elytra's lift coefficient — without touching the physical {@code mc.player.getPitch()}
+     * (which would visibly snap the camera).
+     */
+    @org.spongepowered.asm.mixin.injection.Redirect(
+            method = "calcGlidingVelocity",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"),
+            require = 0
+    )
+    private float redirectGlidingPitch(LivingEntity instance) {
+        if (instance == mc.player) {
+            dev.mzc.client.events.player.RayTraceEvent event = new dev.mzc.client.events.player.RayTraceEvent(instance, instance.getYaw(), instance.getPitch());
+            Sakura.EVENT_BUS.post(event);
+            return event.getPitch();
+        }
+        return instance.getPitch();
+    }
+
     @Inject(method = "jump", at = @At("HEAD"))
     private void onJumpPre(CallbackInfo ci) {
         if ((Object) this == mc.player) {

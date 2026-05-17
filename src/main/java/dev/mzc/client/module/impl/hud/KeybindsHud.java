@@ -21,7 +21,9 @@ import java.util.List;
 public class KeybindsHud extends HudModule {
     public enum Style {
         Simple("Simple"),
-        Exalted("Exalted");
+        Exalted("Exalted"),
+        Spirt("Spirt"),
+        Season("Season");
 
         private final String name;
 
@@ -52,6 +54,10 @@ public class KeybindsHud extends HudModule {
 
         if (style.is(Style.Exalted)) {
             renderExalted(active, s, inEditor);
+        } else if (style.is(Style.Spirt)) {
+            renderSpirt(active, s, inEditor);
+        } else if (style.is(Style.Season)) {
+            renderSeason(active, s, inEditor);
         } else {
             renderSimple(active, s, inEditor);
         }
@@ -206,5 +212,139 @@ public class KeybindsHud extends HudModule {
             if (m.isEnabled() && m.getKey() > 0) list.add(m);
         }
         return list;
+    }
+
+    private void renderSpirt(List<Module> active, float s, boolean inEditor) {
+        // Вспомогательный класс для хранения строк биндов
+        class BindItem {
+            String name, value;
+            public BindItem(String name, String value) {
+                this.name = name;
+                this.value = value;
+            }
+        }
+
+        // Заполняем массив активных функций
+        List<BindItem> activeBinds = new ArrayList<>();
+        for (Module m : active) {
+            activeBinds.add(new BindItem(m.getDisplayName(), getKeyName(m.getKey())));
+        }
+
+        // Если биндов нет, панель скрывается (или оставь только шапку)
+        if (activeBinds.isEmpty() && !inEditor) return;
+
+        Color bg = new Color(22, 19, 41, 240); // Фон SpirtHack
+        Color accent = new Color(110, 85, 235); // Сиреневый цвет элементов
+        Color lineColors = new Color(29, 25, 54, 150); // Тонкие линии-разделители
+        Color textWhite = new Color(220, 220, 225);
+
+        float pad = 10f * s;
+        float rowHeight = 22f * s;
+        float titleHeight = 26f * s;
+        float radius = 5f * s;
+
+        this.width = 150f * s; // Фиксированная ширина как на скрине
+        this.height = titleHeight + (activeBinds.size() * rowHeight) + 4f * s;
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // Рисуем закругленный фон всей панели
+            NanoVGHelper.drawRoundRect(x, y, width, height, radius, bg);
+
+            int font = FontLoader.regular((int)(13f * s));
+
+            // 1. Отрисовка шапки "» Hotkeys"
+            NanoVGHelper.drawString("»", x + pad, y + titleHeight / 2f, font, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, accent);
+            
+            NanoVGHelper.drawString("Keybinds", x + pad + 14f * s, y + titleHeight / 2f, font, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+            // Линия под шапкой
+            NanoVGHelper.drawRect(x, y + titleHeight, width, 1f * s, lineColors);
+
+            // 2. Отрисовка строк с биндами
+            float currentY = y + titleHeight;
+            for (int i = 0; i < activeBinds.size(); i++) {
+                BindItem item = activeBinds.get(i);
+
+                // Название функции (слева)
+                NanoVGHelper.drawString(item.name, x + pad, currentY + rowHeight / 2f, font, 12f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+                // Значение/Статус (справа, фиолетовое)
+                NanoVGHelper.drawString(item.value, x + width - pad, currentY + rowHeight / 2f, font, 12f * s, 
+                        NanoVG.NVG_ALIGN_RIGHT | NanoVG.NVG_ALIGN_MIDDLE, accent);
+
+                // Рисуем разделяющую линию для всех строк, кроме последней
+                if (i < activeBinds.size() - 1) {
+                    NanoVGHelper.drawRect(x, currentY + rowHeight, width, 1f * s, lineColors);
+                }
+
+                currentY += rowHeight;
+            }
+        });
+    }
+
+    private void renderSeason(List<Module> active, float s, boolean inEditor) {
+        // Вспомогательный класс для хранения строк биндов
+        class Bind {
+            String name, key;
+            public Bind(String name, String key) { 
+                this.name = name; 
+                this.key = key; 
+            }
+        }
+
+        // Заполняем массив активных функций
+        List<Bind> binds = new ArrayList<>();
+        for (Module m : active) {
+            binds.add(new Bind(m.getDisplayName(), getKeyName(m.getKey())));
+        }
+
+        if (binds.isEmpty() && !inEditor) return;
+
+        Color colorHeader = new Color(255, 255, 255, 255);   // Чисто белая шапка
+        Color colorBody = new Color(175, 175, 175, 220);    // Серая подложка
+        Color textDark = new Color(25, 25, 25);
+        Color textGray = new Color(70, 70, 70);
+
+        float radius = 10f * s; // Радиус скругления со скрина
+        float headerH = 26f * s;
+        float rowH = 20f * s;
+        
+        this.width = 145f * s;
+        this.height = headerH + (binds.size() * rowH) + 6f * s;
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // Тень (Мягкий черный прямоугольник сзади с большим радиусом)
+            NanoVGHelper.drawRoundRect(x, y + 2f * s, width, height, radius, new Color(0, 0, 0, 35));
+
+            // 1. Нижний серый фон тела
+            NanoVGHelper.drawRoundRect(x, y, width, height, radius, colorBody);
+            // 2. Верхняя белая шапка (перекрывает верх серой структуры)
+            NanoVGHelper.drawRoundRect(x, y, width, headerH + 4f * s, radius, colorHeader);
+            // Прямоугольная заплатка, чтобы скрыть скругления шапки снизу
+            NanoVGHelper.drawRect(x, y + headerH - 1f * s, width, 5f * s, colorHeader);
+
+            int font = FontLoader.regular((int)(13f * s));
+
+            // Иконка клавиатуры (символ ⌨) и заголовок
+            NanoVGHelper.drawString("⌨", x + 10f * s, y + headerH / 2f, font, 14f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
+            NanoVGHelper.drawString("Keybinds", x + 28f * s, y + headerH / 2f, font, 12.5f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
+
+            // 3. Отрисовка самих биндов
+            float currentY = y + headerH + 3f * s;
+            for (Bind b : binds) {
+                // Имя модуля (Темно-серый)
+                NanoVGHelper.drawString(b.name, x + 12f * s, currentY + rowH / 2f, font, 12f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+                // Кнопка активации (Почти черная)
+                NanoVGHelper.drawString(b.key, x + width - 12f * s, currentY + rowH / 2f, font, 12f * s, 
+                        NanoVG.NVG_ALIGN_RIGHT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
+                currentY += rowH;
+            }
+        });
     }
 }

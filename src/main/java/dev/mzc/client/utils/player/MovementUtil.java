@@ -188,12 +188,15 @@ public class MovementUtil {
             return;
         }
 
-        // "Stinc" режим: при любом вводе мы движемся строго на цель (Server Yaw)
-        // Это делается путем подмены входного вектора на (1, 0)
+        // "Stinc" режим (GRIM): при любом вводе мы движемся строго на цель (Server Yaw)
         if (stinc) {
-            event.setForward(1.0f);
-            event.setStrafe(0.0f);
-            // В Stinc режиме поворот не нужен в MoveInput, так как он будет сделан в StrafeEvent
+            // Сохраняем оригинальный вектор движения
+            float magnitude = (float) Math.sqrt(forward * forward + strafe * strafe);
+            if (magnitude > 0.001f) {
+                // Нормализуем и устанавливаем направление строго по yaw киллауры
+                event.setForward(1.0f);
+                event.setStrafe(0.0f);
+            }
             return;
         }
 

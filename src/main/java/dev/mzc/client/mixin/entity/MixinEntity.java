@@ -119,6 +119,20 @@ public abstract class MixinEntity {
         return this.getRotationVector(pitch, yaw);
     }
 
+    /**
+     * Hook the no-arg {@code getRotationVector()} (used by {@code calcGlidingVelocity} and other
+     * physics paths) so our active rotation manager rotation drives elytra flight, not the
+     * player's physical yaw/pitch.
+     */
+    @Inject(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At("HEAD"), cancellable = true)
+    private void onGetRotationVectorNoArg(CallbackInfoReturnable<Vec3d> cir) {
+        if ((Object) this == mc.player) {
+            RayTraceEvent event = new RayTraceEvent((Entity) (Object) this, mc.player.getYaw(), mc.player.getPitch());
+            Sakura.EVENT_BUS.post(event);
+            cir.setReturnValue(this.getRotationVector(event.getPitch(), event.getYaw()));
+        }
+    }
+
     @Inject(method = "updateVelocity", at = @At("HEAD"), cancellable = true)
     public void updateVelocityHook(float speed, Vec3d movementInput, CallbackInfo ci) {
         if ((Object) this == mc.player) {

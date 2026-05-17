@@ -21,7 +21,10 @@ import java.time.format.DateTimeFormatter;
 public class WatermarkHud extends HudModule {
     public enum Style { 
         Gamesense("Gamesense"),
-        Exalted("Exalted");
+        Exalted("Exalted"),
+        Spirt("Spirt"),
+        Season("Season"),
+        TROLLHACK("Trollhack");
 
         private final String name;
 
@@ -51,6 +54,12 @@ public class WatermarkHud extends HudModule {
 
         if (style.is(Style.Exalted)) {
             renderExalted(s);
+        } else if (style.is(Style.Spirt)) {
+            renderSpirt(s);
+        } else if (style.is(Style.Season)) {
+            renderSeason(s);
+        } else if (style.is(Style.TROLLHACK)) {
+            renderTrollhack(s);
         } else {
             renderGamesense(s);
         }
@@ -218,5 +227,174 @@ public class WatermarkHud extends HudModule {
         if (mc.player == null || mc.getNetworkHandler() == null) return 0;
         var entry = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid());
         return entry != null ? Math.max(entry.getLatency(), 0) : 0;
+    }
+
+    private void renderSpirt(float s) {
+        if (mc.player == null) return;
+
+        // Цвета из SpirtHack
+        Color bgMain = new Color(22, 19, 41, 240); // Темно-фиолетовый фон
+        Color bgRight = new Color(29, 25, 54, 255); // Чуть более светлый правый блок
+        Color accentColor = new Color(110, 85, 235); // Сиреневый ромб
+        Color textColor = new Color(220, 220, 225); // Бело-серый текст
+
+        String clientName = Sakura.MOD_NAME; // или "trollhack"
+        String userName = mc.player.getName().getString();
+        String timeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        String rightText = userName + "  /  " + timeStr;
+
+        int font = FontLoader.regular((int)(13f * s));
+        float pad = 8f * s;
+        float radius = 5f * s; // Скругление углов
+
+        float leftW = NanoVGHelper.getTextWidth(clientName, font, 13f * s) + 25f * s;
+        float rightW = NanoVGHelper.getTextWidth(rightText, font, 13f * s) + 16f * s;
+        
+        this.width = leftW + rightW;
+        this.height = 26f * s;
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // 1. Рисуем общую подложку (левая часть)
+            NanoVGHelper.drawRoundRect(x, y, leftW + 5f * s, height, radius, bgMain);
+            
+            // 2. Рисуем правую выделенную плашку
+            NanoVGHelper.drawRoundRect(x + leftW, y, rightW, height, radius, bgRight);
+            
+            // Заплатка, чтобы убрать скругление на стыке двух панелей
+            NanoVGHelper.drawRect(x + leftW, y, 5f * s, height, bgRight);
+
+            // 3. Иконка ромба (используем символ ❖)
+            NanoVGHelper.drawString("❖", x + 8f * s, y + height / 2f, font, 12f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, accentColor);
+
+            // 4. Текст названия клиента
+            NanoVGHelper.drawString(clientName, x + 22f * s, y + height / 2f, font, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textColor);
+
+            // 5. Правый текст (Ник / Время)
+            NanoVGHelper.drawString(rightText, x + leftW + 8f * s, y + height / 2f, font, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textColor);
+        });
+    }
+
+    private void renderSeason(float s) {
+        // Белый цвет с альфой для мягких градиентов фона
+        Color whiteBG = new Color(255, 255, 255, 240);
+        Color seasonBlue = new Color(114, 170, 246); // Синий цвет для буквы S и текста BETA
+        Color textBlack = new Color(20, 20, 20);
+
+        int fontBold = FontLoader.regular(14); // Замени на жирный шрифт, если есть в FontLoader
+
+        float circleRadius = 20f * s;
+        float textPad = 12f * s;
+        
+        String title = "SEASON ";
+        String suffix = "BETA";
+        
+        float textW = NanoVGHelper.getTextWidth(title + suffix, fontBold, 14f * s);
+        this.width = (circleRadius * 2) + textW + (textPad * 2) - 5f * s;
+        this.height = circleRadius * 2;
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // 1. Заднее прямоугольное крыло для текста
+            NanoVGHelper.drawRoundRect(x + circleRadius, y + 4f * s, width - circleRadius, height - 8f * s, 6f * s, whiteBG);
+            
+            // 2. Левый большой круг с мягким свечением/градиентом
+            NanoVGHelper.drawCircle(x + circleRadius, y + circleRadius, circleRadius, whiteBG);
+            
+            // 3. Рисуем букву "S" по центру круга
+            NanoVGHelper.drawCenteredString("S", x + circleRadius, y + circleRadius + 1f * s, 
+                    fontBold, 22f * s, seasonBlue);
+
+            // 4. Текст внутри крыла
+            float textStartX = x + (circleRadius * 2) + 5f * s;
+            float textY = y + circleRadius;
+
+            // Слово "SEASON" (Черное)
+            NanoVGHelper.drawString(title, textStartX, textY, fontBold, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textBlack);
+
+            // Слово "BETA" (Синее, идет сразу после SEASON)
+            float seasonWidth = NanoVGHelper.getTextWidth(title, fontBold, 13f * s);
+            NanoVGHelper.drawString(suffix, textStartX + seasonWidth, textY, fontBold, 13f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, seasonBlue);
+        });
+    }
+
+    private void renderTrollhack(float s) {
+        // Проверяем базовые сущности майнкрафта для вывода FPS и пинга
+        if (mc.world == null || mc.player == null) return;
+
+        // Сбор информации для разделителей (как на скриншотах Gamesense/Demise)
+        final String name = "trollhack";
+        final String branch = "beta";
+        final String fps = mc.getCurrentFps() + " fps";
+        
+        // Получаем пинг текущего игрока
+        final String ping;
+        if (mc.getNetworkHandler() != null && mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid()) != null) {
+            ping = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid()).getLatency() + "ms";
+        } else {
+            ping = "0ms";
+        }
+        
+        // Время для финального элемента в строке
+        final String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        // Формируем общую строчку с разделителями '|'
+        final String splitter = " | ";
+        final String fullText = name + " " + branch + splitter + fps + splitter + ping + splitter + time;
+
+        // Палитра со скриншота
+        Color bgMain = new Color(20, 20, 22, 240);       // Темная матовая подложка
+        Color borderDark = new Color(40, 40, 45, 255);   // Внешний контур рамки
+        Color textWhite = new Color(245, 245, 245);      // Основной текст
+        Color textCyan = new Color(0, 205, 205);         // Бирюзовый акцент для названия/версии
+
+        int font = FontLoader.regular((int)(11f * s));
+        float textWidth = NanoVGHelper.getTextWidth(fullText, font, 11f * s);
+        
+        // Рассчитываем динамические размеры под длину текста
+        float paddingX = 8f * s;
+        float paddingY = 6f * s;
+        this.width = textWidth + (paddingX * 2);
+        this.height = 11f * s + (paddingY * 2);
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // 1. Отрисовка основной темной панели
+            NanoVGHelper.drawRect(x, y, width, height, bgMain);
+            
+            // 2. Тонкая обводка (Outline) панели
+            NanoVG.nvgBeginPath(vg);
+            NanoVG.nvgRect(vg, x, y, width, height);
+            NanoVG.nvgStrokeColor(vg, NanoVGHelper.nvgColor(borderDark));
+            NanoVG.nvgStrokeWidth(vg, 1.0f);
+            NanoVG.nvgStroke(vg);
+
+            // 3. Верхняя градиентная или сплошная неоновая линия (фирменный стиль)
+            // На скриншоте используется бирюзовый градиентный переход, переходящий в фиолетовый
+            NanoVGHelper.drawGradientRect(x + 1f, y + 1f, width - 2f, 1.5f, 
+                    textCyan, new Color(140, 90, 215));
+
+            // 4. Посегментный вывод текста для правильной покраски префикса "trollhack beta"
+            float currentX = x + paddingX;
+            float textY = y + height / 2f;
+
+            // Рендерим "trollhack " (Бирюзовый/Циан)
+            String prefix = name + " ";
+            NanoVGHelper.drawString(prefix, currentX, textY, font, 11f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textCyan);
+            currentX += NanoVGHelper.getTextWidth(prefix, font, 11f * s);
+
+            // Рендерим "beta" (Белый)
+            NanoVGHelper.drawString(branch, currentX, textY, font, 11f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+            currentX += NanoVGHelper.getTextWidth(branch, font, 11f * s);
+
+            // Рендерим оставшуюся системную часть " | X fps | X ms | HH:mm:ss"
+            String technicalStats = splitter + fps + splitter + ping + splitter + time;
+            NanoVGHelper.drawString(technicalStats, currentX, textY, font, 11f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+        });
     }
 }
