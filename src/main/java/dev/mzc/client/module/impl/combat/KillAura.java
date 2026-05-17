@@ -9,6 +9,7 @@ import dev.mzc.client.manager.impl.RotationManager;
 import dev.mzc.client.module.Category;
 import dev.mzc.client.module.Module;
 import dev.mzc.client.module.impl.client.ClickGui;
+import dev.mzc.client.module.impl.combat.elytratarget.ElytraTargetModule;
 import dev.mzc.client.utils.color.ColorUtil;
 import dev.mzc.client.utils.render.Render3DUtil;
 import dev.mzc.client.utils.rotation.MovementFix;
@@ -187,6 +188,39 @@ public class KillAura extends Module {
     @EventHandler
     public void onPreTick(TickEvent.Pre event) {
         if (nullCheck()) return;
+
+        // ElytraTarget integration — when we are gliding and ElytraTarget is locked on a target,
+        // KillAura should defer the rotation to ElytraTarget's RotationManager push and just attack
+        // whatever is in our existing reach.
+        ElytraTargetModule elytra = ElytraTargetModule.INSTANCE;
+        boolean defersToElytra = elytra != null && elytra.canIgnoreKillAuraRotations();
+        if (defersToElytra) {
+            // Prefer the elytra target so we attack the same entity we are flying at.
+            LivingEntity elytraTarget = elytra.getTarget();
+            if (elytraTarget != null && isValid(elytraTarget)) {
+                this.target = elytraTarget;
+            } else {
+                this.target = selectTarget();
+            }
+            if (this.target == null) {
+                visualInitialized = false;
+                lastOut = null;
+                lastDesired = null;
+                return;
+            }
+            // Compute aim/rotations purely for the visual + cooldown bookkeeping; do NOT push to manager.
+            AimResult aim = selectAimPoint(this.target);
+            currentAimPoint = aim.point;
+            lastOut = lastDesired = Managers.ROTATION.getRotation();
+            if (!visualInitialized) {
+                visualYaw = lastOut.yaw; visualPitch = lastOut.pitch; visualInitialized = true;
+            } else {
+                visualYaw = MathHelper.lerp(0.55f, visualYaw, lastOut.yaw);
+                visualPitch = MathHelper.lerp(0.55f, visualPitch, lastOut.pitch);
+            }
+            return;
+        }
+
         target = selectTarget();
         if (target == null) {
             visualInitialized = false;

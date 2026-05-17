@@ -21,6 +21,11 @@ public final class CategoryIcons {
             case Render -> "C";    // Sun
             case Misc -> "H";      // Brush
             case Client -> "D";    // Moon
+<<<<<<< HEAD
+=======
+            case HVH -> "J";       // Soldier
+            case Search -> "I";    // Crosshair
+>>>>>>> 5234ecb41d329712377f48c348abbd5e48adaa81
         };
     }
 }

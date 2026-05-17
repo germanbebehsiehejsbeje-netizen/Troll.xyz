@@ -127,7 +127,11 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
 
             float tabY = y + 10;
             for (Category cat : Category.values()) {
+<<<<<<< HEAD
 
+=======
+                if (cat == Category.Search) continue;
+>>>>>>> 5234ecb41d329712377f48c348abbd5e48adaa81
 
                 boolean selected = cat == currentCategory;
                 boolean hovered = mouseX >= x && mouseX <= x + SIDEBAR_W &&
@@ -171,6 +175,7 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             List<Module> modules = getModulesForCategory();
             int half = (modules.size() + 1) / 2;
 
+<<<<<<< HEAD
             // Calculate content height WITHOUT rendering
             float leftColumnHeight = calculateColumnHeight(modules.subList(0, Math.min(half, modules.size())));
             float rightColumnHeight = calculateColumnHeight(modules.subList(Math.min(half, modules.size()), modules.size()));
@@ -182,6 +187,13 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             float leftEnd = renderColumn(modules.subList(0, Math.min(half, modules.size())), leftX, listY + scrollY, colW, mouseX, mouseY);
             float rightEnd = renderColumn(modules.subList(Math.min(half, modules.size()), modules.size()), rightX, listY + scrollY, colW, mouseX, mouseY);
 
+=======
+            float leftEnd = renderColumn(modules.subList(0, Math.min(half, modules.size())), leftX, listY + scrollY, colW, mouseX, mouseY);
+            float rightEnd = renderColumn(modules.subList(Math.min(half, modules.size()), modules.size()), rightX, listY + scrollY, colW, mouseX, mouseY);
+
+            maxScroll = Math.max(0, Math.max(leftEnd, rightEnd) - (listY + listH));
+
+>>>>>>> 5234ecb41d329712377f48c348abbd5e48adaa81
             NanoVGHelper.restore();
             NanoVGHelper.resetScissor();
         });
@@ -196,6 +208,7 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         return curY;
     }
 
+<<<<<<< HEAD
     private float calculateColumnHeight(List<Module> modules) {
         float height = 0;
         for (Module module : modules) {
@@ -204,6 +217,8 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         return height;
     }
 
+=======
+>>>>>>> 5234ecb41d329712377f48c348abbd5e48adaa81
     private float renderModuleGroup(Module module, float gx, float gy, float gw, int mouseX, int mouseY) {
         float groupContentH = 0;
         List<Value<?>> visibleValues = new ArrayList<>();
@@ -336,7 +351,11 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         if (mx >= x && mx <= x + SIDEBAR_W) {
             float tabY = y + 10;
             for (Category cat : Category.values()) {
+<<<<<<< HEAD
 
+=======
+                if (cat == Category.Search) continue;
+>>>>>>> 5234ecb41d329712377f48c348abbd5e48adaa81
                 if (my >= tabY && my <= tabY + 44) {
                     currentCategory = cat;
                     scrollY = 0;
