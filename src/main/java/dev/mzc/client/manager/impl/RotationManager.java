@@ -224,6 +224,20 @@ public class RotationManager {
         }
     }
 
+    /**
+     * Silent move-fix for elytra:
+     * On the elytra, {@link net.minecraft.entity.LivingEntity#travel} drives flight using
+     * {@code getRotationVector()} and {@code getPitch()} of the physical player. Our hook on
+     * {@code getRotationVector()} already feeds the server rotation into the physics; we leave
+     * the physical yaw/pitch alone so the camera stays free (silent rotation).
+     */
+    @EventHandler
+    private void onTravel(dev.mzc.client.events.player.TravelEvent event) {
+        // Intentionally empty — the previous implementation swapped physical yaw/pitch around
+        // travel(), which made the camera visibly snap. The MixinEntity getRotationVector()
+        // hook is the silent path; nothing to do here.
+    }
+
     @EventHandler
     private void onRaytrace(RayTraceEvent event) {
         if (active && rotations != null) {
