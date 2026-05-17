@@ -56,7 +56,7 @@ public class KillAura extends Module {
 
     public enum RotationMode { 
         Slide, Resolver, Snap, Neuro, Packet, Polar, Grim, Smooth, HolyWorld, NoRot,
-        Legit, LonyGrief, Universal
+        Legit, LonyGrief, Universal, FunTime
     }
     public enum SprintResetMode { Normal, Legit, HvH, Packet }
     public enum AttackMode { V1_8, V1_9 }
@@ -249,6 +249,7 @@ public class KillAura extends Module {
             case HolyWorld -> applyHolyWorldRotationActual(desired, target);
             case Polar -> applyPolarRotation(desired, target);
             case Smooth -> applySmoothRotation(desired);
+            case FunTime -> applyFunTimeRotation(desired);
             case NoRot -> Managers.ROTATION.getRotation();
             case Legit -> applyLegitRotation(desired, target);
             case LonyGrief -> applyLonyGriefRotation(desired, target);
@@ -659,6 +660,60 @@ public class KillAura extends Module {
         return mc.world.getBlockCollisions(mc.player, entity.getBoundingBox().expand(expand)).iterator().hasNext();
     }
 
+    /** Timestamp (ms) when smoothback started after losing target — used to fade out the shake. */
+    private long funTimeSmoothbackStartMs = -1L;
+
+    /**
+     * FunTimeSnap — port of FunTime client's polar-shake snap.
+     * - target present: hard step toward target, full snap when within 8°.
+     * - target lost: drift back to player's physical rotation with a damped sin/cos shake;
+     *   the shake fades out over 1 second.
+     */
+    private Rotation applyFunTimeRotation(Rotation desired) {
+        Rotation current = Managers.ROTATION.getRotation();
+        float yawDiff = MathHelper.wrapDegrees(desired.yaw - current.yaw);
+        float pitchDiff = desired.pitch - current.pitch;
+
+        boolean haveTarget = target != null;
+
+        if (haveTarget) {
+            funTimeSmoothbackStartMs = -1L;
+            float dist = (float) Math.hypot(yawDiff, pitchDiff);
+            if (dist < 8f) {
+                return new Rotation(desired.yaw, MathHelper.clamp(desired.pitch, -90f, 90f));
+            }
+            float maxStep = 130f;
+            float yawStep = MathHelper.clamp(yawDiff, -maxStep, maxStep);
+            float pitchStep = MathHelper.clamp(pitchDiff, -maxStep, maxStep);
+            return new Rotation(
+                    current.yaw + yawStep,
+                    MathHelper.clamp(current.pitch + pitchStep, -90f, 90f)
+            );
+        }
+
+        // Drift back to physical rotation with shake.
+        Rotation playerRot = new Rotation(mc.player.getYaw(), mc.player.getPitch());
+        float yawDiffP = MathHelper.wrapDegrees(playerRot.yaw - current.yaw);
+        float pitchDiffP = playerRot.pitch - current.pitch;
+        float dist = (float) Math.hypot(yawDiffP, pitchDiffP);
+        if (dist < 0.05f) dist = 1.0f;
+
+        float shakeYaw = (8f + ThreadLocalRandom.current().nextFloat() * 3f) * (float) Math.sin(System.currentTimeMillis() / 55.0);
+        float shakePitch = (4f + ThreadLocalRandom.current().nextFloat() * 4f) * (float) Math.cos(System.currentTimeMillis() / 55.0);
+
+        if (funTimeSmoothbackStartMs < 0L) funTimeSmoothbackStartMs = System.currentTimeMillis();
+        float fade = 1.0f - MathHelper.clamp((System.currentTimeMillis() - funTimeSmoothbackStartMs) / 1000.0f, 0f, 1f);
+        shakeYaw *= fade;
+        shakePitch *= fade;
+
+        float maxReturnYaw = Math.abs(yawDiffP / dist) * 45.0f;
+        float maxReturnPitch = Math.abs(pitchDiffP / dist) * 45.0f;
+        return new Rotation(
+                MathHelper.lerp(0.85f, current.yaw, current.yaw + MathHelper.clamp(yawDiffP, -maxReturnYaw, maxReturnYaw) + shakeYaw),
+                MathHelper.clamp(MathHelper.lerp(0.85f, current.pitch, current.pitch + MathHelper.clamp(pitchDiffP, -maxReturnPitch, maxReturnPitch) + shakePitch), -90f, 90f)
+        );
+    }
+
     private boolean isFlying() {
         return mc.player.isGliding();
     }
@@ -801,6 +856,16 @@ public class KillAura extends Module {
         }
 
         if (breakShield.get()) tryBreakShield(tgt);
+
+        // Make sure the server has our latest rotation before the attack packet — otherwise the
+        // server may evaluate the hit using the previous tick's rotation and reject it.
+        Rotation rot = Managers.ROTATION.getRotation();
+        try {
+            mc.player.networkHandler.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround(
+                    rot.yaw, MathHelper.clamp(rot.pitch, -90f, 90f),
+                    mc.player.isOnGround(), mc.player.horizontalCollision
+            ));
+        } catch (Throwable ignored) {}
 
         mc.interactionManager.attackEntity(mc.player, tgt);
         mc.player.swingHand(Hand.MAIN_HAND);
