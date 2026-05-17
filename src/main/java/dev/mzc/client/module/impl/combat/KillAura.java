@@ -53,7 +53,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class KillAura extends Module {
 
-    public enum RotationMode { Slide, Resolver, Snap, Neuro, Packet, Polar, Grim, Smooth, HolyWorld, NoRot }
+    public enum RotationMode { 
+        Slide, Resolver, Snap, Neuro, Packet, Polar, Grim, Smooth, HolyWorld, NoRot,
+        Legit, LonyGrief, Universal
+    }
     public enum SprintResetMode { Normal, Legit, HvH, Packet }
     public enum AttackMode { V1_8, V1_9 }
     public enum MaceKillMode { Off, Vanilla, Aggressive }
@@ -87,6 +90,12 @@ public class KillAura extends Module {
     private final NumberValue<Integer> maceKillHeight = new NumberValue<>("MaceKill Height", 15, 5, 50, 1, () -> maceKillMode.get() != MaceKillMode.Off);
     private final NumberValue<Integer> maceKillPackets = new NumberValue<>("MaceKill Packets", 10, 3, 30, 1, () -> maceKillMode.get() != MaceKillMode.Off);
 
+    // New rotation mode settings
+    private final NumberValue<Double> universalYawSpeed = new NumberValue<>("Universal Yaw Speed", 30.0, 5.0, 60.0, 1.0, () -> rotationMode.is(RotationMode.Universal));
+    private final NumberValue<Double> universalPitchSpeed = new NumberValue<>("Universal Pitch Speed", 20.0, 5.0, 40.0, 1.0, () -> rotationMode.is(RotationMode.Universal));
+    private final BoolValue spookySkeletons = new BoolValue("Spooky Skeletons", false, () -> rotationMode.is(RotationMode.Universal));
+    private final BoolValue hulyMode = new BoolValue("Huly Mode", false, () -> rotationMode.is(RotationMode.Universal) && spookySkeletons.get());
+
     private LivingEntity target;
     private LivingEntity lastTarget;
     private Vec3d currentAimPoint;
@@ -100,6 +109,28 @@ public class KillAura extends Module {
     private boolean attackedThisTick;
     private boolean maceKillActive = false;
     private int maceKillState = 0;
+
+    // New rotation mode fields
+    private float legitLastYawStep;
+    private float legitLastPitchStep;
+    private float legitDriftYaw;
+    private float legitDriftPitch;
+    private long legitNextDriftUpdate;
+
+    private float holyWorldDriftYaw;
+    private float holyWorldDriftPitch;
+    private long holyWorldNextOffsetRefresh;
+
+    private float lonyGriefAcceleration;
+    private boolean lonyGriefBackwardsRotating;
+    private float lonyGriefLastYaw;
+    private float lonyGriefLastPitch;
+
+    private float universalLastYawDelta;
+    private float universalLastPitchDelta;
+    private int universalLastPitchChangeDirection;
+    private int universalTicksSinceSwitchedDirection;
+    private int universalJopa;
 
     public KillAura() {
         super("KillAura", Category.Combat);
@@ -120,6 +151,28 @@ public class KillAura extends Module {
         lastDesired = null;
         maceKillState = 0;
         maceKillActive = false;
+        
+        // Reset new rotation mode fields
+        legitLastYawStep = 0;
+        legitLastPitchStep = 0;
+        legitDriftYaw = 0;
+        legitDriftPitch = 0;
+        legitNextDriftUpdate = 0;
+        
+        holyWorldDriftYaw = 0;
+        holyWorldDriftPitch = 0;
+        holyWorldNextOffsetRefresh = 0;
+        
+        lonyGriefAcceleration = 0;
+        lonyGriefBackwardsRotating = false;
+        lonyGriefLastYaw = 0;
+        lonyGriefLastPitch = 0;
+        
+        universalLastYawDelta = 0;
+        universalLastPitchDelta = 0;
+        universalLastPitchChangeDirection = 0;
+        universalTicksSinceSwitchedDirection = 0;
+        universalJopa = 0;
     }
 
     @EventHandler
@@ -158,10 +211,14 @@ public class KillAura extends Module {
             case Resolver -> applyResolverRotation(desired);
             case Snap -> applySnapRotation(desired);
             case Neuro -> neuro.apply(desired);
-            case Packet, Grim, HolyWorld -> desired;
+            case Packet, Grim -> desired;
+            case HolyWorld -> applyHolyWorldRotationActual(desired, target);
             case Polar -> applyPolarRotation(desired, target);
             case Smooth -> applySmoothRotation(desired);
             case NoRot -> Managers.ROTATION.getRotation();
+            case Legit -> applyLegitRotation(desired, target);
+            case LonyGrief -> applyLonyGriefRotation(desired, target);
+            case Universal -> applyUniversalRotation(desired, target);
         };
 
         out = applyGcdPatch(out);
@@ -169,7 +226,7 @@ public class KillAura extends Module {
         lastOut = out;
         lastDesired = desired;
 
-        RotationManager.Priority priority = (rotationMode.is(RotationMode.Packet) || rotationMode.is(RotationMode.Polar) || rotationMode.is(RotationMode.Grim) || rotationMode.is(RotationMode.HolyWorld)) ? RotationManager.Priority.Highest : RotationManager.Priority.High;
+        RotationManager.Priority priority = (rotationMode.is(RotationMode.Packet) || rotationMode.is(RotationMode.Polar) || rotationMode.is(RotationMode.Grim) || rotationMode.is(RotationMode.HolyWorld) || rotationMode.is(RotationMode.Legit) || rotationMode.is(RotationMode.LonyGrief) || rotationMode.is(RotationMode.Universal)) ? RotationManager.Priority.Highest : RotationManager.Priority.High;
         
         MovementFix fix = isFlying() ? MovementFix.OFF : MovementFix.GRIM;
         Managers.ROTATION.setRotations(out, 100, fix, priority);
@@ -234,6 +291,340 @@ public class KillAura extends Module {
         return new Rotation(newYaw, newPitch);
     }
 
+    // Legit Rotation - очень плавная и легитная ротация
+    private Rotation applyLegitRotation(Rotation targetRotation, Entity entity) {
+        Rotation currentRotation = Managers.ROTATION.getRotation();
+        
+        float yawDelta = MathHelper.wrapDegrees(targetRotation.yaw - currentRotation.yaw);
+        float pitchDelta = targetRotation.pitch - currentRotation.pitch;
+
+        updateLegitDrift();
+
+        int age = mc.player != null ? mc.player.age : 0;
+        float yawSpeed = MathHelper.clamp(2.8f + Math.abs(yawDelta) * 0.22f, 1.8f, 15.0f);
+        float pitchSpeed = MathHelper.clamp(1.8f + Math.abs(pitchDelta) * 0.16f, 1.0f, 9.5f);
+
+        float yawNoise = (float) Math.sin(age * 0.33f + (entity != null ? entity.getId() * 0.11f : 0.0f)) * 0.16f + legitDriftYaw;
+        float pitchNoise = (float) Math.cos(age * 0.27f + (entity != null ? entity.getId() * 0.07f : 0.0f)) * 0.09f + legitDriftPitch;
+
+        float yawStep = calculateLegitStep(yawDelta + yawNoise, yawSpeed, 0.56f);
+        float pitchStep = calculateLegitStep(pitchDelta + pitchNoise, pitchSpeed, 0.48f);
+
+        yawStep = MathHelper.lerp(0.38f, legitLastYawStep, yawStep);
+        pitchStep = MathHelper.lerp(0.32f, legitLastPitchStep, pitchStep);
+
+        if (Math.abs(yawStep) > Math.abs(yawDelta)) {
+            yawStep = yawDelta;
+        }
+
+        if (Math.abs(pitchStep) > Math.abs(pitchDelta)) {
+            pitchStep = pitchDelta;
+        }
+
+        legitLastYawStep = yawStep;
+        legitLastPitchStep = pitchStep;
+
+        return new Rotation(
+                currentRotation.yaw + yawStep,
+                MathHelper.clamp(currentRotation.pitch + pitchStep, -90.0f, 90.0f)
+        );
+    }
+
+    private float calculateLegitStep(float delta, float maxStep, float smoothing) {
+        if (Math.abs(delta) < 0.001f) {
+            return 0.0f;
+        }
+
+        float step = MathHelper.clamp(delta * smoothing, -maxStep, maxStep);
+        if (Math.abs(delta) < maxStep * 0.55f) {
+            step = delta * 0.8f;
+        }
+
+        return step;
+    }
+
+    private void updateLegitDrift() {
+        long time = System.currentTimeMillis();
+        if (time < legitNextDriftUpdate) {
+            legitDriftYaw *= 0.92f;
+            legitDriftPitch *= 0.92f;
+            return;
+        }
+
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        legitDriftYaw = random.nextFloat() * 0.28f - 0.14f;
+        legitDriftPitch = random.nextFloat() * 0.18f - 0.09f;
+        legitNextDriftUpdate = time + random.nextLong(85L, 165L);
+    }
+
+    // Holy World Rotation - ротация с орбитальным дрейфом
+    private Rotation applyHolyWorldRotationActual(Rotation targetRotation, Entity entity) {
+        Rotation currentRotation = Managers.ROTATION.getRotation();
+        
+        refreshHolyWorldOffsets();
+
+        float yawDelta = MathHelper.wrapDegrees(targetRotation.yaw - currentRotation.yaw);
+        float pitchDelta = targetRotation.pitch - currentRotation.pitch;
+
+        float yawSpeed = MathHelper.clamp(10.0f + Math.abs(yawDelta) * 0.38f, 7.0f, 34.0f);
+        float pitchSpeed = MathHelper.clamp(4.5f + Math.abs(pitchDelta) * 0.24f, 3.0f, 18.0f);
+
+        int age = mc.player != null ? mc.player.age : 0;
+        float orbitYaw = (float) Math.sin(age * 0.21f) * 1.35f + holyWorldDriftYaw;
+        float orbitPitch = (float) Math.cos(age * 0.17f) * 0.55f + holyWorldDriftPitch;
+
+        return new Rotation(
+                currentRotation.yaw + MathHelper.clamp(yawDelta + orbitYaw, -yawSpeed, yawSpeed),
+                MathHelper.clamp(currentRotation.pitch + MathHelper.clamp(pitchDelta + orbitPitch, -pitchSpeed, pitchSpeed), -90.0f, 90.0f)
+        );
+    }
+
+    private void refreshHolyWorldOffsets() {
+        long now = System.currentTimeMillis();
+        if (now < holyWorldNextOffsetRefresh) {
+            holyWorldDriftYaw *= 0.94f;
+            holyWorldDriftPitch *= 0.94f;
+            return;
+        }
+
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        holyWorldDriftYaw = random.nextFloat() * 1.35f - 0.675f;
+        holyWorldDriftPitch = random.nextFloat() * 0.4f - 0.2f;
+        holyWorldNextOffsetRefresh = now + random.nextLong(120L, 240L);
+    }
+
+    // Lony Grief Rotation - ротация с ускорением и jitter
+    private Rotation applyLonyGriefRotation(Rotation targetRotation, Entity entity) {
+        Rotation currentRotation = Managers.ROTATION.getRotation();
+
+        if (lonyGriefLastYaw == 0.0f && lonyGriefLastPitch == 0.0f) {
+            lonyGriefLastYaw = currentRotation.yaw;
+            lonyGriefLastPitch = currentRotation.pitch;
+        }
+
+        boolean hasTarget = entity instanceof LivingEntity;
+        boolean hasTrace = hasTarget && rayTrace((LivingEntity) entity, attackRange.get());
+
+        float deltaYaw = MathHelper.wrapDegrees(targetRotation.yaw - lonyGriefLastYaw);
+        float deltaPitch = targetRotation.pitch - lonyGriefLastPitch;
+
+        // Gliding logic
+        if (mc.player.isGliding()) {
+            if (!lonyGriefBackwardsRotating) {
+                lonyGriefAcceleration += 0.005F;
+                if (lonyGriefAcceleration >= 0.13F) {
+                    lonyGriefBackwardsRotating = true;
+                }
+            } else {
+                if (lonyGriefAcceleration >= -0.02F) {
+                    lonyGriefAcceleration -= 0.005F;
+                }
+                if (lonyGriefAcceleration <= -0.02F) {
+                    lonyGriefBackwardsRotating = false;
+                }
+            }
+        }
+        // Logic when no trace
+        else if (!hasTrace) {
+            lonyGriefAcceleration += 0.0015F;
+        }
+        // Logic when trace exists
+        else if (lonyGriefAcceleration > 0.0F) {
+            lonyGriefAcceleration -= 0.01F;
+        }
+
+        float smooth = Math.max(lonyGriefAcceleration, 0.0F);
+
+        // Smooth aiming
+        float newYaw = lonyGriefLastYaw + deltaYaw * Math.min(Math.max(smooth, 0.0F), 1.0F);
+        float newPitch = lonyGriefLastPitch + deltaPitch * Math.min(Math.max(smooth / 2.0F, 0.0F), 1.0F);
+
+        // Add jitter
+        newYaw += getLonyGriefJitter(mc.player.isGliding(), true);
+        newPitch = MathHelper.clamp(newPitch + getLonyGriefJitter(mc.player.isGliding(), false), -89.0F, 89.0F);
+
+        // Apply GCD
+        Rotation smoothRotation = snapToGcdLony(lonyGriefLastYaw, lonyGriefLastPitch, new Rotation(newYaw, newPitch));
+
+        // Update last values
+        lonyGriefLastYaw = smoothRotation.yaw;
+        lonyGriefLastPitch = smoothRotation.pitch;
+
+        return smoothRotation;
+    }
+
+    private float getLonyGriefJitter(boolean isGliding, boolean isYaw) {
+        float time = (float) (System.currentTimeMillis() % 10000L) / 1000.0F;
+        float amplitude = isGliding ? 2.5F : 1.5F;
+
+        if (isYaw) {
+            return (float) Math.sin(time * 2F * Math.PI * 3F) * amplitude;
+        } else {
+            return (float) Math.cos(time * 2F * Math.PI * 2.5F) * amplitude;
+        }
+    }
+
+    private Rotation snapToGcdLony(float lastYaw, float lastPitch, Rotation target) {
+        float gcd = getGcd();
+
+        float deltaYaw = target.yaw - lastYaw;
+        float deltaPitch = target.pitch - lastPitch;
+
+        float snappedDeltaYaw = (float) (Math.round(deltaYaw / gcd) * gcd);
+        float snappedDeltaPitch = (float) (Math.round(deltaPitch / gcd) * gcd);
+
+        return new Rotation(lastYaw + snappedDeltaYaw, lastPitch + snappedDeltaPitch);
+    }
+
+    // Universal Rotation - сложная адаптивная ротация
+    private Rotation applyUniversalRotation(Rotation targetRotation, Entity entity) {
+        Rotation currentRotation = Managers.ROTATION.getRotation();
+        
+        float yawDelta = MathHelper.wrapDegrees(targetRotation.yaw - currentRotation.yaw);
+        float pitchDelta = targetRotation.pitch - currentRotation.pitch;
+
+        float maxYawSpeed = universalYawSpeed.get().floatValue() / 3f;
+        float maxPitchSpeed = universalPitchSpeed.get().floatValue() / 3f;
+
+        if ((pitchDelta < 0.0f && this.universalLastPitchDelta > 0.0f) || (pitchDelta > 0.0f && this.universalLastPitchDelta < 0.0f)) {
+            universalTicksSinceSwitchedDirection = 0;
+        } else {
+            ++universalTicksSinceSwitchedDirection;
+        }
+
+        boolean invalid = universalTicksSinceSwitchedDirection == 0 && Math.abs(pitchDelta) > 5.0f;
+        if (invalid) {
+            pitchDelta -= 1f;
+            pitchDelta *= 0.3f;
+            maxPitchSpeed *= 0.4f;
+        }
+
+        if (Math.abs(pitchDelta) < 0.05f) {
+            pitchDelta -= (float) (Math.random() * 0.05f - 0.225f);
+        }
+
+        if (Math.abs(yawDelta - universalLastYawDelta) < 0.08f) {
+            yawDelta -= (float) (Math.random() * 0.15f - 0.125f);
+        }
+
+        if (Math.abs(pitchDelta) < 0.01f) {
+            pitchDelta -= (float) (Math.random() * 0.01f - 0.005f);
+        }
+
+        if (Math.abs(yawDelta) > 180.25f) {
+            maxYawSpeed *= 0.8f;
+        }
+
+        if (Math.abs(yawDelta) > 15.0f && Math.abs(pitchDelta) < 0.1f) {
+            maxYawSpeed *= 0.7f;
+        }
+
+        if (Math.abs(yawDelta) < 0.05f && Math.abs(pitchDelta) < 0.05f) {
+            maxYawSpeed *= 1.1f;
+            maxPitchSpeed *= 1.1f;
+        }
+
+        if (yawDelta > 1.25f && universalLastYawDelta > 1.25f) {
+            yawDelta -= universalLastYawDelta;
+            maxYawSpeed *= 3;
+        }
+
+        if (Math.abs(yawDelta) > 2.75f && Math.abs(pitchDelta) == 0.0f) {
+            maxYawSpeed *= 0.8f;
+            maxPitchSpeed *= 1.1f;
+        }
+
+        if (Math.abs(yawDelta) > 0.5f && Math.abs(pitchDelta) < 0.05f) {
+            maxYawSpeed *= 0.7f;
+            maxPitchSpeed *= 1.05f;
+        }
+
+        if (Math.abs(yawDelta) > 1.825f && Math.abs(pitchDelta) == 0.0f) {
+            maxYawSpeed *= 0.6f;
+            maxPitchSpeed *= 0.9f;
+        }
+
+        if (Math.abs(yawDelta) > 20.0f && Math.abs(pitchDelta) < 0.1f) {
+            maxYawSpeed *= 0.5f;
+            maxPitchSpeed *= 1.1f;
+        }
+
+        if (Math.abs(yawDelta) > 0.25f && Math.abs(pitchDelta) > 0.25f && Math.abs(pitchDelta) < 20.0f && Math.abs(yawDelta) < 20.0f) {
+            maxYawSpeed *= 0.95f;
+            maxPitchSpeed *= 0.85f;
+        }
+
+        if (Math.abs(yawDelta) > 0.1f && Math.abs(pitchDelta) > 0.1f && Math.abs(yawDelta) < 20.0f && Math.abs(pitchDelta) < 20.0f) {
+            maxYawSpeed *= 0.9f;
+            maxPitchSpeed *= 0.8f;
+        }
+
+        if (Math.abs(yawDelta) > 0.05f && Math.abs(pitchDelta) == 0.0f) {
+            maxYawSpeed *= 0.8f;
+            maxPitchSpeed *= 0.95f;
+        }
+
+        if (Math.abs(yawDelta) > 0.05f && Math.abs(pitchDelta) < 0.05f) {
+            maxYawSpeed *= 0.85f;
+            maxPitchSpeed *= 1.1f;
+        }
+
+        if (Math.abs(yawDelta) > 0.75f && Math.abs(pitchDelta) > 0.75f) {
+            maxYawSpeed *= 0.8f;
+            maxPitchSpeed *= 0.75f;
+        }
+
+        if (Math.abs(yawDelta) > 0.03f && Math.abs(pitchDelta) > 0.03f) {
+            maxYawSpeed *= 0.9f;
+            maxPitchSpeed *= 0.8f;
+        }
+
+        int currentPitchChangeDirection = pitchDelta > 0 ? 1 : -1;
+        if (universalLastPitchChangeDirection != 0 && currentPitchChangeDirection != universalLastPitchChangeDirection) {
+            maxPitchSpeed *= 0.2f;
+        }
+        universalLastPitchChangeDirection = currentPitchChangeDirection;
+
+        boolean hasCollision = entity != null && hasCollisionWith(entity, 1f);
+        boolean check = entity instanceof LivingEntity && rayTrace((LivingEntity) entity, attackRange.get());
+
+        if (spookySkeletons.get()) {
+            int maxJopa = 20;
+            float deldeldel = !hulyMode.get() ? 30f : 13f;
+            if (hasCollision) {
+                pitchDelta /= deldeldel;
+                yawDelta /= deldeldel;
+                universalJopa = maxJopa;
+            }
+
+            if (!hulyMode.get() && !hasCollision && check){
+                maxPitchSpeed *= 1.3f;
+                maxYawSpeed *= 1.1f;
+            } else if (!hulyMode.get() && !hasCollision){
+                maxPitchSpeed *= 1.1f;
+                maxYawSpeed *= 1.25f;
+            }
+
+            if (universalJopa-- > 0) {
+                float superJopa = Math.max(1f, (universalJopa / (float) maxJopa) * 15f);
+                yawDelta /= superJopa;
+                pitchDelta /= superJopa;
+            }
+        }
+
+        universalLastYawDelta = yawDelta;
+        universalLastPitchDelta = pitchDelta;
+
+        return new Rotation(
+                currentRotation.yaw + MathHelper.clamp(yawDelta, -maxYawSpeed, maxYawSpeed),
+                currentRotation.pitch + MathHelper.clamp(pitchDelta, -maxPitchSpeed, maxPitchSpeed)
+        );
+    }
+
+    private boolean hasCollisionWith(Entity entity, float expand) {
+        return mc.world.getBlockCollisions(mc.player, entity.getBoundingBox().expand(expand)).iterator().hasNext();
+    }
+
     private boolean isFlying() {
         return mc.player.isGliding();
     }
@@ -265,6 +656,7 @@ public class KillAura extends Module {
         if (e == mc.player || !e.isAlive()) return false;
         if (e instanceof PlayerEntity p) {
             if (!targetPlayers.get()) return false;
+            if (Teams.getInstance() != null && Teams.getInstance().isTeammate(p)) return false;
             return targetFriends.get() || Managers.FRIEND == null || !Managers.FRIEND.isFriend(p.getName().getString());
         }
         return targetMobs.get();

@@ -76,6 +76,14 @@ public class DamageUtil {
         return (float) explosionDamage(entity, box, pos, ignorePos, null, ignoreTerrain, 6);
     }
 
+    /**
+     * Calculates crystal damage as if there was an obsidian "ghost block" at obbyPos.
+     * Used by AutoCrystal's auto-obby feature to evaluate damage gain from placing obsidian.
+     */
+    public static float calculateGhostBlockDamage(LivingEntity entity, Vec3d pos, BlockPos obbyPos) {
+        return (float) explosionDamage(entity, entity.getBoundingBox(), pos, null, obbyPos, false, 6);
+    }
+
     public static float calculateAnchorDamage(LivingEntity entity, BlockPos pos) {
         return calculateAnchorDamage(entity, entity.getBoundingBox(), pos, pos, false);
     }

@@ -37,18 +37,15 @@ public class CategoryPanel implements IComponent {
         this.category = category;
         this.opened = true;
         this.openAnimation.setDirection(Direction.BACKWARDS);
-        if (category != Category.Search) {
-            for (i = 0; i < (Sakura.MODULES.getModsByCategory(category).size()); ++i) {
-                Module module = Sakura.MODULES.getModsByCategory(category).get(i);
-                moduleComponents.add(new ModuleComponent(module));
-            }
+        for (i = 0; i < (Sakura.MODULES.getModsByCategory(category).size()); ++i) {
+            Module module = Sakura.MODULES.getModsByCategory(category).get(i);
+            moduleComponents.add(new ModuleComponent(module));
         }
     }
 
     private boolean shouldShow(Module module) {
         if (!dev.mzc.client.auth.AuthManager.getRole().isAtLeast(module.getRequiredRole())) return false;
         
-        if (this.category == Category.Search) return true;
         ClickGui.ModuleFilter filter = ClickGui.moduleFilter.get();
         if (filter == ClickGui.ModuleFilter.All) return true;
         if (module.getType() == Module.ModuleType.All) return true;
@@ -57,68 +54,15 @@ public class CategoryPanel implements IComponent {
         return true;
     }
 
-    private void updateSearch() {
-        if (searchText.isEmpty()) {
-            moduleComponents.clear();
-            return;
-        }
 
-        ObjectArrayList<Module> targetModules = new ObjectArrayList<>();
-        for (Module module : Sakura.MODULES.getAllModules()) {
-            if (!shouldShow(module)) continue;
-
-            String cnName = module.getChineseName();
-            if ((cnName != null && cnName.toLowerCase().contains(searchText.toLowerCase())) ||
-                    module.getEnglishName().toLowerCase().contains(searchText.toLowerCase())) {
-                targetModules.add(module);
-            }
-        }
-
-        for (ModuleComponent component : moduleComponents) {
-            if (!targetModules.contains(component.getModule())) {
-                component.setVisible(false);
-            }
-        }
-
-        for (Module module : targetModules) {
-            boolean exists = false;
-            for (ModuleComponent component : moduleComponents) {
-                if (component.getModule() == module) {
-                    exists = true;
-                    component.setVisible(true);
-                    break;
-                }
-            }
-            if (!exists) {
-                ModuleComponent component = new ModuleComponent(module);
-                component.setOpened(false);
-                component.setVisible(true);
-                component.resetVisibilityAnimation();
-                moduleComponents.add(component);
-            }
-        }
-        
-        List<Module> allModules = new ArrayList<>(Sakura.MODULES.getAllModules());
-        moduleComponents.sort((c1, c2) -> {
-            int i1 = allModules.indexOf(c1.getModule());
-            int i2 = allModules.indexOf(c2.getModule());
-            return Integer.compare(i1, i2);
-        });
-    }
 
     @Override
     public void render(DrawContext guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        if (category != Category.Search) {
-            if (lastFilter != ClickGui.moduleFilter.get()) {
-                lastFilter = ClickGui.moduleFilter.get();
-                for (ModuleComponent component : moduleComponents) {
-                    component.setVisible(shouldShow(component.getModule()));
-                }
+        if (lastFilter != ClickGui.moduleFilter.get()) {
+            lastFilter = ClickGui.moduleFilter.get();
+            for (ModuleComponent component : moduleComponents) {
+                component.setVisible(shouldShow(component.getModule()));
             }
-        }
-
-        if (category == Category.Search && !searchText.isEmpty()) {
-            moduleComponents.removeIf(ModuleComponent::shouldRemove);
         }
 
         update(mouseX, mouseY);
@@ -164,12 +108,14 @@ public class CategoryPanel implements IComponent {
             NanoVGHelper.drawRect(x + 10 * guiScale, y + headerHeight - 2 * guiScale, scaledWidth - 20 * guiScale, 1, new Color(255, 255, 255, 35));
 
             // Title (Lowered slightly for symmetry)
-            String title = category == Category.Search ? (searchText.isEmpty() ? (typing ? "_" : "Search...") : searchText + (typing ? "_" : "")) : category.getName();
+            String title = category.getName();
             NanoVGHelper.drawString(title, x + 8 * guiScale, y + 15f * guiScale, FontLoader.bold(baseFontSize + 1), baseFontSize + 1, SakuraTheme.TEXT);
             
-            // Icon
-            float iconSize = baseFontSize * 1.6f;
-            NanoVGHelper.drawString(category.icon, x + scaledWidth - NanoVGHelper.getTextWidth(category.icon, FontLoader.icons(iconSize), iconSize) - 10 * guiScale, y + 16f * guiScale, FontLoader.icons(iconSize), iconSize, isSakura ? SakuraTheme.PRIMARY : mainColor);
+            // Icon (badcache font for all GUIs)
+            float iconSize = baseFontSize * 1.8f;
+            String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+            int iconFont = FontLoader.badcache(iconSize);
+            NanoVGHelper.drawString(icon, x + scaledWidth - NanoVGHelper.getTextWidth(icon, iconFont, iconSize) - 10 * guiScale, y + 16f * guiScale, iconFont, iconSize, isSakura ? SakuraTheme.PRIMARY : mainColor);
         });
 
         for (ModuleComponent component : moduleComponents) {
@@ -186,9 +132,6 @@ public class CategoryPanel implements IComponent {
         if (isHovered((int) mouseX, (int) mouseY)) {
             switch (mouseButton) {
                 case 0 -> {
-                    if (category == Category.Search) {
-                        typing = !typing;
-                    }
                     dragging = true;
                     dragX = (float) (x - mouseX);
                     dragY = (float) (y - mouseY);
@@ -196,8 +139,6 @@ public class CategoryPanel implements IComponent {
                 case 1 -> opened = !opened;
             }
             return true;
-        } else if (category == Category.Search && mouseButton == 0) {
-            typing = false;
         }
 
         boolean handled = false;
@@ -214,17 +155,6 @@ public class CategoryPanel implements IComponent {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (category == Category.Search && typing) {
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE && !searchText.isEmpty()) {
-                searchText = searchText.substring(0, searchText.length() - 1);
-                updateSearch();
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_ENTER) {
-                typing = false;
-                return true;
-            }
-        }
         boolean handled = false;
         for (ModuleComponent component : moduleComponents) {
             if (component.keyPressed(keyCode, scanCode, modifiers)) {
@@ -236,11 +166,6 @@ public class CategoryPanel implements IComponent {
 
     @Override
     public boolean charTyped(char chr, int modifiers) {
-        if (category == Category.Search && typing) {
-            searchText += chr;
-            updateSearch();
-            return true;
-        }
         boolean handled = false;
         for (ModuleComponent component : moduleComponents) {
             if (component.charTyped(chr, modifiers)) {
@@ -267,12 +192,6 @@ public class CategoryPanel implements IComponent {
     public void update(int mouseX, int mouseY) {
         if (ClickGui.moduleFilter.get() != lastFilter) {
             lastFilter = ClickGui.moduleFilter.get();
-            if (category == Category.Search && !searchText.isEmpty()) {
-                updateSearch();
-            }
-        }
-
-        if (category != Category.Search) {
             for (ModuleComponent component : moduleComponents) {
                 component.setVisible(shouldShow(component.getModule()));
             }

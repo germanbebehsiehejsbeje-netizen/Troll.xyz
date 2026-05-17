@@ -13,15 +13,11 @@ import dev.mzc.client.values.impl.BoolValue;
 import dev.mzc.client.values.impl.EnumValue;
 import dev.mzc.client.values.impl.NumberValue;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Box;
 
@@ -135,25 +131,7 @@ public class MutiAura extends Module {
         }
 
         if (!teamCheck.get()) return true;
-        if (!(entity instanceof PlayerEntity player)) return true;
-        if (mc.player == null) return false;
-
-        int myColor = getLeatherArmorColor(mc.player);
-        int theirColor = getLeatherArmorColor(player);
-
-        if (myColor == -1 || theirColor == -1) return true;
-        return myColor != theirColor;
-    }
-
-    private int getLeatherArmorColor(PlayerEntity player) {
-        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            ItemStack stack = player.getEquippedStack(slot);
-            if (stack.isEmpty()) continue;
-            DyedColorComponent dyed = stack.get(DataComponentTypes.DYED_COLOR);
-            if (dyed != null) {
-                return dyed.rgb();
-            }
-        }
-        return -1;
+        if (Teams.getInstance() != null && Teams.getInstance().isTeammate(entity)) return false;
+        return true;
     }
 }

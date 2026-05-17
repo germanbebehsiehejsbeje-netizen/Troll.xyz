@@ -6,8 +6,10 @@ import dev.mzc.client.events.render.item.HeldItemRendererEvent;
 import dev.mzc.client.events.render.item.RenderSwingAnimationEvent;
 import dev.mzc.client.events.render.item.UpdateHeldItemsEvent;
 import dev.mzc.client.module.impl.render.Animations;
+import dev.mzc.client.module.impl.render.SwingAnimation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.util.math.MatrixStack;
@@ -107,6 +109,16 @@ public class MixinHeldItemRenderer {
         // pipeline still draws the item while Animations can adjust transforms later.
         if (animations != null && animations.isEnabled() && !item.isEmpty()) {
             // Intentionally do not cancel default rendering to keep items visible.
+        }
+        
+        // Apply SwingAnimation custom rendering
+        SwingAnimation swingAnim = Sakura.MODULES.getModule(SwingAnimation.class);
+        if (swingAnim != null && swingAnim.isEnabled() && !swingAnim.mode.is(SwingAnimation.Mode.Normal)) {
+            ci.cancel();
+            matrices.push();
+            VertexConsumerProvider.Immediate vertexConsumers = mc.getBufferBuilders().getEntityVertexConsumers();
+            swingAnim.handleRenderItem(player, tickDelta, pitch, hand, swingProgress, item, equipProgress, matrices, vertexConsumers, light);
+            matrices.pop();
         }
     }
 

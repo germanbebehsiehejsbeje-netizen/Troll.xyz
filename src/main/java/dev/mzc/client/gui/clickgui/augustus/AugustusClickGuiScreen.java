@@ -65,7 +65,7 @@ public class AugustusClickGuiScreen extends ClickGuiScreen {
 
             float catY = y + 70;
             for (Category category : Category.values()) {
-                if (category == Category.Search) continue;
+
                 
                 boolean selected = category == currentCategory;
                 Color color = selected ? ClickGui.color(0) : new Color(150, 150, 160);
@@ -75,9 +75,10 @@ public class AugustusClickGuiScreen extends ClickGuiScreen {
                     NanoVGHelper.drawRect(x, catY - 10, 3, 30, color);
                 }
                 
-                // Icon + Name
-                NanoVGHelper.drawString(category.icon, x + 15, catY + 10, FontLoader.icons(16), 16, color);
-                NanoVGHelper.drawString(category.name().toUpperCase(), x + 40, catY + 10, FontLoader.regular(13), 13, color);
+                // Icon + Name (badcache icon font)
+                String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+                NanoVGHelper.drawString(icon, x + 15, catY + 12, FontLoader.badcache(20), 20, color);
+                NanoVGHelper.drawString(category.name().toUpperCase(), x + 45, catY + 10, FontLoader.regular(13), 13, color);
                 catY += 35;
             }
 
@@ -114,7 +115,7 @@ public class AugustusClickGuiScreen extends ClickGuiScreen {
         if (mouseX >= x && mouseX <= x + sidebarWidth && mouseY >= y + 70 && mouseY <= y + height) {
             float catY = y + 70;
             for (Category category : Category.values()) {
-                if (category == Category.Search) continue;
+
                 if (mouseY >= catY - 10 && mouseY <= catY + 20) {
                     currentCategory = category;
                     refreshModules();

@@ -5,7 +5,6 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import dev.mzc.client.Sakura;
 import dev.mzc.client.events.render.Render3DEvent;
 import dev.mzc.client.module.impl.render.BlockOutline;
-import dev.mzc.client.module.impl.render.MiningAnimation;
 import dev.mzc.client.module.impl.render.NoRender;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
@@ -49,16 +48,7 @@ public class MixinWorldRenderer {
         if (noRender != null && noRender.noWeather()) ci.cancel();
     }
 
-    @Inject(method = "renderBlockDamage", at = @At("HEAD"), cancellable = true)
-    private void onRenderBlockDamage(MatrixStack matrices, VertexConsumerProvider.Immediate vertexConsumers, WorldRenderState worldRenderState, CallbackInfo ci) {
-        MiningAnimation miningAnimation = Sakura.MODULES.getModule(MiningAnimation.class);
-        if (miningAnimation != null) {
-            miningAnimation.captureBreakingState(worldRenderState);
-            if (miningAnimation.disableVanillaTexture()) {
-                ci.cancel();
-            }
-        }
-    }
+
 
     @ModifyVariable(method = "render", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private boolean onRenderBlockOutline(boolean renderBlockOutline) {

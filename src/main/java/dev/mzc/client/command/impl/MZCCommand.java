@@ -27,7 +27,6 @@ import dev.mzc.client.module.impl.render.BlockOutline;
 import dev.mzc.client.module.impl.render.Hat;
 import dev.mzc.client.module.impl.render.JumpCircles;
 import dev.mzc.client.module.impl.render.KillEffect;
-import dev.mzc.client.module.impl.render.MiningAnimation;
 import dev.mzc.client.module.impl.misc.NameProtect;
 import dev.mzc.client.module.impl.render.NameTags;
 import dev.mzc.client.module.impl.render.Trail;
@@ -55,7 +54,6 @@ public class MZCCommand extends Command {
         RENDER_MODULES_TO_HIDE.add(BlockESP.class);
         RENDER_MODULES_TO_HIDE.add(BlockOutline.class);
         RENDER_MODULES_TO_HIDE.add(AntiVanish.class);
-        RENDER_MODULES_TO_HIDE.add(MiningAnimation.class);
         RENDER_MODULES_TO_HIDE.add(NameProtect.class);
     }
 

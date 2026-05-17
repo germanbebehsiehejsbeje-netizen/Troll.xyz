@@ -65,6 +65,7 @@ public class ModuleManager {
         add(new AutoCrystal());
         add(new TimerRange());
         add(new ElytraTargetModule());
+        add(new Teams());
 
         // Movement
         add(new AutoSprint());
@@ -76,7 +77,7 @@ public class ModuleManager {
         add(new AutoWTap());
         add(new Velocity());
         add(new FastStairs());
-        add(new GuiMove());
+        add(new InventoryMove());
         add(new BetterSneak());
         add(new Fly());
         add(new ElytraFly());
@@ -165,7 +166,6 @@ public class ModuleManager {
         add(new Atmosphere());
         add(new CameraClip());
         add(new AttackEffect());
-        add(new Chams());
         add(new Crystal());
         add(new Fullbright());
         add(new Freelook());
@@ -177,22 +177,18 @@ public class ModuleManager {
         add(new SwingAnimation());
         add(new TotemParticles());
         add(new ViewModel());
-        add(new HandItemOutline());
         add(new XRay());
         add(new AntiVanish());
         add(new BlockESP());
         add(new EntityESP());
         add(new BlockOutline());
-        add(new MiningAnimation());
         add(new Animations());
         add(new Trail());
-        add(new DashTrail());
         add(new KillEffect());
         add(new Fov());
-        add(new Fireflies());
         add(new CubeParticles());
-        add(new GhostLines());
         add(new BedTrap());
+        add(new TotemPopChams());
 
         // Client
         add(new AutoHeypixel());

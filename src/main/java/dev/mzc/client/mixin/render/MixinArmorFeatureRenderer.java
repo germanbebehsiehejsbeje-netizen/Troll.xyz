@@ -1,8 +1,6 @@
 package dev.mzc.client.mixin.render;
 
 import com.mojang.blaze3d.opengl.GlStateManager;
-import dev.mzc.client.Sakura;
-import dev.mzc.client.module.impl.render.Chams;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.feature.ArmorFeatureRenderer;
 import net.minecraft.client.render.entity.state.BipedEntityRenderState;

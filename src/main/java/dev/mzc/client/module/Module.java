@@ -131,9 +131,7 @@ public class Module {
         return englishName;
     }
 
-    public String getChineseName() {
-        return TranslationManager.getChinese(translationKey, englishName);
-    }
+
 
     public boolean isState() {
         return state;

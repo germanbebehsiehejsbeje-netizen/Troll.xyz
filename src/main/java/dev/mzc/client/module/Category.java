@@ -9,9 +9,7 @@ public enum Category {
     Player("B"),
     Render("M"),
     Misc("E"),
-    Client("D"),
-    Search("F"),
-    HVH("H");
+    Client("D");
 
     public final String icon;
 

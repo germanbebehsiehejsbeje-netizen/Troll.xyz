@@ -4,6 +4,7 @@ import dev.mzc.client.Sakura;
 import dev.mzc.client.gui.clickgui.vape.MZCClickGuiScreen;
 import dev.mzc.client.gui.clickgui.vape.VulkanClickGuiScreen;
 import dev.mzc.client.gui.clickgui.augustus.AugustusClickGuiScreen;
+import dev.mzc.client.gui.clickgui.skeet.SkeetClickGuiScreen;
 import dev.mzc.client.module.Category;
 import dev.mzc.client.module.Module;
 import dev.mzc.client.utils.color.ColorUtil;
@@ -35,7 +36,6 @@ public class ClickGui extends Module {
     }
 
     public enum Language {
-        Chinese(),
         English(),
         German(),
         Russian();
@@ -48,7 +48,9 @@ public class ClickGui extends Module {
         Skaji(),
         MZC(),
         Vulkan(),
-        Augustus();
+        Augustus(),
+        Default(),
+        Skeet();
         GuiStyle() {
         }
     }
@@ -125,6 +127,7 @@ public class ClickGui extends Module {
     private MZCClickGuiScreen mzcClickGui;
     private VulkanClickGuiScreen vulkanClickGui;
     private AugustusClickGuiScreen augustusClickGui;
+    private SkeetClickGuiScreen skeetClickGui;
 
     public ClickGui() {
         super("ClickGui", Category.Client);
@@ -153,14 +156,20 @@ public class ClickGui extends Module {
                 augustusClickGui = new AugustusClickGuiScreen();
             }
             mc.setScreen(augustusClickGui);
+        } else if (style.get() == GuiStyle.Skeet) {
+            if (skeetClickGui == null) {
+                skeetClickGui = new SkeetClickGuiScreen();
+            }
+            mc.setScreen(skeetClickGui);
         } else {
+            // Sakura, Skaji, Default — all use Sakura GUI
             mc.setScreen(Sakura.CLICKGUI);
         }
     }
 
     @Override
     protected void onDisable() {
-        if (mc.mouse != null && (mc.currentScreen instanceof MZCClickGuiScreen || mc.currentScreen instanceof VulkanClickGuiScreen || mc.currentScreen instanceof AugustusClickGuiScreen || mc.currentScreen == Sakura.CLICKGUI)) {
+        if (mc.mouse != null && (mc.currentScreen instanceof MZCClickGuiScreen || mc.currentScreen instanceof VulkanClickGuiScreen || mc.currentScreen instanceof AugustusClickGuiScreen || mc.currentScreen instanceof SkeetClickGuiScreen || mc.currentScreen == Sakura.CLICKGUI)) {
             mc.setScreen(null);
         }
     }

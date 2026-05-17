@@ -207,7 +207,9 @@ public class MZCClickGuiScreen extends Screen {
                      NanoVGHelper.drawRoundRect(x + 5, catY, sidebarWidth - 10, 25, 5, new Color(40, 40, 40));
                 }
 
-                NanoVGHelper.drawString(category.name(), x + 15, catY + 18, FontLoader.regular(16), 16, color);
+                String icon = dev.mzc.client.gui.clickgui.skeet.CategoryIcons.forCategory(category);
+                NanoVGHelper.drawString(icon, x + 15, catY + 19, FontLoader.badcache(16), 16, color);
+                NanoVGHelper.drawString(category.name(), x + 35, catY + 18, FontLoader.regular(15), 15, color);
                 catY += 35;
             }
             
@@ -217,7 +219,7 @@ public class MZCClickGuiScreen extends Screen {
             NanoVGHelper.drawRoundRect(modListX, y, moduleListWidth, height, 0, new Color(25, 25, 25, 255));
             
             // Search Input Logic
-            searchAnimation.setDirection(currentCategory == Category.Search ? Direction.FORWARDS : Direction.BACKWARDS);
+            searchAnimation.setDirection(Direction.BACKWARDS);
             float searchAnimVal = searchAnimation.getOutput().floatValue();
             
             float searchBoxHeight = 35 * searchAnimVal;
@@ -269,7 +271,7 @@ public class MZCClickGuiScreen extends Screen {
             }
             
             List<Module> modules = new java.util.ArrayList<>();
-             if (currentCategory == Category.Search) {
+             if (false) {
                   modules = new java.util.ArrayList<>(Sakura.MODULES.getAllModules());
              } else {
                   modules = getFilteredModules();
@@ -277,10 +279,10 @@ public class MZCClickGuiScreen extends Screen {
              
              // Calculate Content Height with Animation
              float contentHeight = 10;
-             if (currentCategory == Category.Search) {
+             if (false) {
                   for (Module module : modules) {
                       String name = module.getEnglishName().toLowerCase();
-                      String cnName = module.getChineseName() != null ? module.getChineseName().toLowerCase() : "";
+                      String cnName = "";
                       String search = searchText.toLowerCase();
                       boolean visible = name.contains(search) || cnName.contains(search);
                       
@@ -314,7 +316,7 @@ public class MZCClickGuiScreen extends Screen {
                 float itemHeight = 30;
                 float itemAlpha = 1.0f;
                 
-                if (currentCategory == Category.Search) {
+                if (false) {
                     Animation searchAnim = searchVisibilityAnimations.get(module);
                     float scale = searchAnim != null ? searchAnim.getOutput().floatValue() : 0;
                     if (scale < 0.01) continue;
@@ -334,22 +336,22 @@ public class MZCClickGuiScreen extends Screen {
                     int b = (int) (200 + (targetColor.getBlue() - 200) * progress);
                     Color textColor = new Color(r, g, b, (int)(255 * itemAlpha));
                     
-                    NanoVGHelper.drawRoundRect(modListX + 5, modY, moduleListWidth - 10, 25 * (currentCategory == Category.Search ? itemAlpha : 1), 5, bgColor);
+                    NanoVGHelper.drawRoundRect(modListX + 5, modY, moduleListWidth - 10, 25, 5, bgColor);
                     
                     if (itemAlpha > 0.5) {
                         NanoVGHelper.save();
                         NanoVGHelper.intersectScissor(modListX, modY, moduleListWidth, itemHeight);
-                        NanoVGHelper.drawString(module.getDisplayName(), modListX + 10, modY + 18 * (currentCategory == Category.Search ? itemAlpha : 1), FontLoader.regular(15), 15, textColor);
+                        NanoVGHelper.drawString(module.getDisplayName(), modListX + 10, modY + 18, FontLoader.regular(15), 15, textColor);
                         NanoVGHelper.restore();
                     }
                     
                     // Active indicator dot
                      if (progress > 0.05 && itemAlpha > 0.5) {
-                         NanoVGHelper.drawCircle(modListX + moduleListWidth - 15, modY + 12.5f * (currentCategory == Category.Search ? itemAlpha : 1), 3 * progress, textColor);
+                         NanoVGHelper.drawCircle(modListX + moduleListWidth - 15, modY + 12.5f, 3 * progress, textColor);
                      }
                 }
                 modY += itemHeight;
-                if (currentCategory != Category.Search || (searchVisibilityAnimations.get(module) != null && searchVisibilityAnimations.get(module).getOutput().floatValue() > 0.01)) {
+                if (true) {
                      moduleIndex++;
                 }
             }
@@ -881,7 +883,7 @@ public class MZCClickGuiScreen extends Screen {
                 focusedNumberValue = null;
                 numberValueBuffer = "";
 
-                if (category != Category.Search) {
+                if (true) {
                     searchText = "";
                     searching = false;
                 } else {
@@ -899,7 +901,7 @@ public class MZCClickGuiScreen extends Screen {
         if (mouseX < modListX || mouseX >= modListX + moduleListWidth) return false;
         if (mouseY < y || mouseY >= y + height) return false;
 
-        if (currentCategory == Category.Search) {
+        if (false) {
             float searchY = y + 10;
             if (mouseY >= searchY && mouseY <= searchY + 25) {
                 if (button == 0) {
@@ -915,7 +917,7 @@ public class MZCClickGuiScreen extends Screen {
         }
 
         List<Module> modules;
-        if (currentCategory == Category.Search) {
+        if (false) {
             modules = new ArrayList<>(Sakura.MODULES.getAllModules());
         } else {
             modules = getFilteredModules();
@@ -926,9 +928,9 @@ public class MZCClickGuiScreen extends Screen {
 
         for (Module module : modules) {
             float itemHeight = 30;
-            if (currentCategory == Category.Search) {
+            if (false) {
                 String name = module.getEnglishName().toLowerCase();
-                String cnName = module.getChineseName() != null ? module.getChineseName().toLowerCase() : "";
+                String cnName = "";
                 String search = searchText.toLowerCase();
                 boolean visible = name.contains(search) || cnName.contains(search);
 
@@ -1516,7 +1518,7 @@ public class MZCClickGuiScreen extends Screen {
     }
 
     private List<Module> getFilteredModules() {
-        if (currentCategory != Category.Search) {
+        if (true) {
              return Sakura.MODULES.getModsByCategory(currentCategory).stream()
                  .filter(m -> dev.mzc.client.auth.AuthManager.getRole().isAtLeast(m.getRequiredRole()))
                  .toList();
@@ -1680,7 +1682,7 @@ public class MZCClickGuiScreen extends Screen {
 
     private float moduleListStartY() {
         float listStartY = y + 10;
-        if (currentCategory == Category.Search) {
+        if (false) {
             float searchAnimVal = searchAnimation.getOutput().floatValue();
             listStartY += 35 * searchAnimVal;
         }

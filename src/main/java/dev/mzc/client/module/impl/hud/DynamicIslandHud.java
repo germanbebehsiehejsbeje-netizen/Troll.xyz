@@ -3566,7 +3566,7 @@ public class DynamicIslandHud extends HudModule {
     }
 
     private boolean isChinese() {
-        return ClickGui.language.get() == ClickGui.Language.Chinese;
+        return false;
     }
 
     private record ToggleInfo(String name, boolean enabled) {

@@ -14,10 +14,7 @@ import dev.mzc.client.utils.rotation.RotationUtil;
 import dev.mzc.client.utils.vector.Rotation;
 import dev.mzc.client.utils.vector.Vector3d;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
@@ -188,40 +185,10 @@ public class AimAssist extends Module {
     }
 
     private boolean isValid(Entity entity) {
-        if (ignoreTeam.get() && isTeammate(entity)) return false;
+        if (ignoreTeam.get() && Teams.getInstance() != null && Teams.getInstance().isTeammate(entity)) return false;
         if (Sakura.MODULES.getModule(Friend.class).isFriend(entity.getName().getString())) return false;
         if (entity instanceof PlayerEntity) return true;
         return false;
-    }
-
-    private boolean isTeammate(Entity entity) {
-        if (!(entity instanceof PlayerEntity player)) return false;
-        if (mc.player == null) return false;
-
-        // Leather armor color check (simple team check used in other modules)
-        int myColor = getLeatherArmorColor(mc.player);
-        int theirColor = getLeatherArmorColor(player);
-
-        if (myColor != -1 && theirColor != -1 && myColor == theirColor) return true;
-
-        // Scoreboard team check
-        if (mc.player.getScoreboardTeam() != null && player.getScoreboardTeam() != null) {
-            return mc.player.getScoreboardTeam().isEqual(player.getScoreboardTeam());
-        }
-
-        return false;
-    }
-
-    private int getLeatherArmorColor(PlayerEntity player) {
-        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
-            ItemStack stack = player.getEquippedStack(slot);
-            if (stack.isEmpty()) continue;
-            DyedColorComponent dyed = stack.get(DataComponentTypes.DYED_COLOR);
-            if (dyed != null) {
-                return dyed.rgb();
-            }
-        }
-        return -1;
     }
 
     private boolean isHoldingWeapon() {

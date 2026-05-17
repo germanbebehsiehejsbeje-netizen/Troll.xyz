@@ -43,9 +43,8 @@ public abstract class Value<V> {
         return TranslationManager.get(translationKey, name);
     }
 
-    public String getChineseName() {
-        return TranslationManager.getChinese(translationKey, name);
-    }
+
+
 
     public boolean isAvailable() {
         return dependency != null && this.dependency.check();

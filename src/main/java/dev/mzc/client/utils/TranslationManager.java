@@ -27,12 +27,10 @@ public final class TranslationManager {
     public static void reload() {
         TRANSLATIONS.clear();
         TRANSLATIONS.put(ClickGui.Language.English, new java.util.HashMap<>());
-        TRANSLATIONS.put(ClickGui.Language.Chinese, new java.util.HashMap<>());
         TRANSLATIONS.put(ClickGui.Language.German, new java.util.HashMap<>());
         TRANSLATIONS.put(ClickGui.Language.Russian, new java.util.HashMap<>());
 
         loadLanguageFile(ClickGui.Language.English, "assets/sakura/lang/en_us.json");
-        loadLanguageFile(ClickGui.Language.Chinese, "assets/sakura/lang/zh_cn.json");
         loadLanguageFile(ClickGui.Language.German, "assets/sakura/lang/de_DE.json");
         loadLanguageFile(ClickGui.Language.German, "assets/sakura/lang/de_de.json");
         loadLanguageFile(ClickGui.Language.Russian, "assets/sakura/lang/ru_RU.json");
@@ -65,9 +63,7 @@ public final class TranslationManager {
         return key;
     }
 
-    public static String getChinese(String key, String fallbackEnglish) {
-        return get(key, ClickGui.Language.Chinese, fallbackEnglish);
-    }
+
 
     public static String categoryKey(Category category) {
         return "category." + normalizeKey(category.name());

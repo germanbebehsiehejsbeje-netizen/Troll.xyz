@@ -220,7 +220,6 @@ public class WelcomeScreen extends Screen {
 
     private String getLanguageDisplayName(ClickGui.Language language) {
         return switch (language) {
-            case Chinese -> TranslationManager.get("enum.click_gui.language.chinese", "Chinese");
             case English -> TranslationManager.get("enum.click_gui.language.english", "English");
             case German -> TranslationManager.get("enum.click_gui.language.german", "German");
             case Russian -> TranslationManager.get("enum.click_gui.language.russian", "Russian");
