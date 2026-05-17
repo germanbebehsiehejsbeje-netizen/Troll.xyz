@@ -7,9 +7,7 @@ import java.util.function.Function;
 
 public enum TargetPosition {
     EYES("Eyes", target -> target.getEyePos()),
-    CENTER("Center", target -> target.getEyePos().add(0.0, -target.getEyeHeight(target.getPose()) / 2.0, 0.0)),
-    ABOVE("Above", target -> target.getEyePos().add(0.0, 0.5, 0.0)),
-    HIGH("High", target -> target.getEyePos().add(0.0, 1.5, 0.0));
+    CENTER("Center", target -> target.getEyePos().add(0.0, -target.getEyeHeight(target.getPose()) / 2.0, 0.0));
 
     private final String name;
     private final Function<LivingEntity, Vec3d> position;

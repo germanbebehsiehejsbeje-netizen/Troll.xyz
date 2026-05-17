@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "trollhack",
+  "id": "sakura",
   "version": "${version}",
-  "name": "TrollHack",
-  "description": "TrollHack Mod which can allow you to use fullbright",
+  "name": "MZC",
+  "description": "MZCMod which can allow you to use fullbright",
   "icon": "icon.png",
   "authors": [
     "MZC8865"
