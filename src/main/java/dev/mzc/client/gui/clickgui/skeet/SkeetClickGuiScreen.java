@@ -128,7 +128,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             float tabY = y + 10;
             for (Category cat : Category.values()) {
 
-
                 boolean selected = cat == currentCategory;
                 boolean hovered = mouseX >= x && mouseX <= x + SIDEBAR_W &&
                         mouseY >= tabY && mouseY <= tabY + 44;
@@ -173,11 +172,12 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             List<Module> leftMods = modules.subList(0, Math.min(half, modules.size()));
             List<Module> rightMods = modules.subList(Math.min(half, modules.size()), modules.size());
 
-            // Compute content height first (without scroll) to clamp scrollY correctly
-            float leftContentH = computeColumnHeight(leftMods);
-            float rightContentH = computeColumnHeight(rightMods);
-            float maxColumnH = Math.max(leftContentH, rightContentH);
-            maxScroll = Math.max(0, maxColumnH - listH);
+            // Calculate content height WITHOUT rendering
+            float leftColumnHeight = calculateColumnHeight(leftMods);
+            float rightColumnHeight = calculateColumnHeight(rightMods);
+
+            float contentHeight = Math.max(leftColumnHeight, rightColumnHeight);
+            maxScroll = Math.max(0, contentHeight - listH);
             scrollY = MathHelper.clamp(scrollY, -maxScroll, 0);
 
             renderColumn(leftMods, leftX, listY + scrollY, colW, mouseX, mouseY);
@@ -195,6 +195,14 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             curY += GROUP_PAD;
         }
         return curY;
+    }
+
+    private float calculateColumnHeight(List<Module> modules) {
+        float height = 0;
+        for (Module module : modules) {
+            height += calculateGroupHeight(module) + GROUP_PAD;
+        }
+        return height;
     }
 
     private float renderModuleGroup(Module module, float gx, float gy, float gw, int mouseX, int mouseY) {
@@ -449,14 +457,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         for (Value<?> val : module.getValues()) {
             if (!val.isAvailable()) continue;
             h += ITEM_H + ITEM_PAD;
-        }
-        return h;
-    }
-
-    private float computeColumnHeight(List<Module> modules) {
-        float h = 0;
-        for (Module m : modules) {
-            h += calculateGroupHeight(m) + GROUP_PAD;
         }
         return h;
     }
