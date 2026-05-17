@@ -213,6 +213,7 @@ public class ModuleManager {
         add(new NotificationHud());
         add(new NotifyHud());
         add(new TargetHud());
+        add(new SimpleTargetHud());
         add(new PotionHud());
         add(new ArmorHud());
         add(new HandItemHud());

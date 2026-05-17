@@ -170,17 +170,18 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
 
             List<Module> modules = getModulesForCategory();
             int half = (modules.size() + 1) / 2;
+            List<Module> leftMods = modules.subList(0, Math.min(half, modules.size()));
+            List<Module> rightMods = modules.subList(Math.min(half, modules.size()), modules.size());
 
-            // Calculate content height WITHOUT rendering
-            float leftColumnHeight = calculateColumnHeight(modules.subList(0, Math.min(half, modules.size())));
-            float rightColumnHeight = calculateColumnHeight(modules.subList(Math.min(half, modules.size()), modules.size()));
-            
-            float contentHeight = Math.max(leftColumnHeight, rightColumnHeight);
-            maxScroll = Math.max(0, contentHeight - listH);
+            // Compute content height first (without scroll) to clamp scrollY correctly
+            float leftContentH = computeColumnHeight(leftMods);
+            float rightContentH = computeColumnHeight(rightMods);
+            float maxColumnH = Math.max(leftContentH, rightContentH);
+            maxScroll = Math.max(0, maxColumnH - listH);
+            scrollY = MathHelper.clamp(scrollY, -maxScroll, 0);
 
-            // Now render with actual scrollY
-            float leftEnd = renderColumn(modules.subList(0, Math.min(half, modules.size())), leftX, listY + scrollY, colW, mouseX, mouseY);
-            float rightEnd = renderColumn(modules.subList(Math.min(half, modules.size()), modules.size()), rightX, listY + scrollY, colW, mouseX, mouseY);
+            renderColumn(leftMods, leftX, listY + scrollY, colW, mouseX, mouseY);
+            renderColumn(rightMods, rightX, listY + scrollY, colW, mouseX, mouseY);
 
             NanoVGHelper.restore();
             NanoVGHelper.resetScissor();
@@ -194,14 +195,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             curY += GROUP_PAD;
         }
         return curY;
-    }
-
-    private float calculateColumnHeight(List<Module> modules) {
-        float height = 0;
-        for (Module module : modules) {
-            height += calculateGroupHeight(module) + GROUP_PAD;
-        }
-        return height;
     }
 
     private float renderModuleGroup(Module module, float gx, float gy, float gw, int mouseX, int mouseY) {
@@ -419,8 +412,10 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // Just accumulate the scroll. Clamping happens in render() once we know the content height.
         this.scrollY += (float) (scrollY * 20);
-        this.scrollY = MathHelper.clamp(this.scrollY, -maxScroll, 0);
+        if (this.scrollY > 0) this.scrollY = 0;
+        if (maxScroll > 0 && this.scrollY < -maxScroll) this.scrollY = -maxScroll;
         return true;
     }
 
@@ -454,6 +449,14 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         for (Value<?> val : module.getValues()) {
             if (!val.isAvailable()) continue;
             h += ITEM_H + ITEM_PAD;
+        }
+        return h;
+    }
+
+    private float computeColumnHeight(List<Module> modules) {
+        float h = 0;
+        for (Module m : modules) {
+            h += calculateGroupHeight(m) + GROUP_PAD;
         }
         return h;
     }
