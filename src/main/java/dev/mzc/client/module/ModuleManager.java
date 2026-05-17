@@ -104,6 +104,7 @@ public class ModuleManager {
 
         // Player
         add(new AutoArmor());
+        add(new AutoBrew());
         add(new Blink());
         add(new FakePlayer());
         add(new GhostHand());
