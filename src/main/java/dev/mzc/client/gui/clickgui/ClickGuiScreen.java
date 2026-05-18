@@ -121,8 +121,17 @@ public class ClickGuiScreen extends Screen {
             }
         }
 
+        // Shader Background
+        if (ClickGui.shaderBackground.get()) {
+            Shader2DUtil.drawDistortionBackground(
+                    new MatrixStack(),
+                    0, 0,
+                    mc.getWindow().getScaledWidth(), mc.getWindow().getScaledHeight(),
+                    partialTicks
+            );
+        }
         // Global Blur Background
-        if (ClickGui.backgroundBlur.get()) {
+        else if (ClickGui.backgroundBlur.get()) {
             float blurStrength = ClickGui.blurStrength.get().floatValue();
             if (skajiStyle) blurStrength *= 1.35f;
             Shader2DUtil.drawQuadBlur(

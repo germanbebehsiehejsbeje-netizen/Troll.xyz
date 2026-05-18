@@ -3,6 +3,7 @@ package dev.mzc.client.utils.render;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.mzc.client.shaders.BlurProgram;
+import dev.mzc.client.shaders.DistortionShaderProgram;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import org.joml.Matrix4f;
@@ -11,9 +12,11 @@ import java.awt.*;
 
 public class Shader2DUtil {
     public static BlurProgram BLUR_PROGRAM;
+    public static DistortionShaderProgram DISTORTION_PROGRAM;
 
     public static void init() {
         BLUR_PROGRAM = new BlurProgram();
+        DISTORTION_PROGRAM = new DistortionShaderProgram();
     }
 
     public static void drawQuadBlur(MatrixStack matrices, float x, float y, float width, float height, float blurStrength, float blurOpacity) {
@@ -21,6 +24,18 @@ public class Shader2DUtil {
 
         BLUR_PROGRAM.setParameters(x, y, width, height, 0f, new Color(0, 0, 0, 0), blurStrength, blurOpacity);
         BLUR_PROGRAM.use();
+
+        RenderLayers.debugQuads().draw(bb.end());
+        endRender();
+    }
+
+    public static void drawDistortionBackground(MatrixStack matrices, float x, float y, float width, float height, float delta) {
+        // Update shader time
+        DISTORTION_PROGRAM.updateTime(delta);
+        
+        BufferBuilder bb = preShaderDraw(matrices, x, y, width, height);
+        DISTORTION_PROGRAM.setParameters(width, height);
+        DISTORTION_PROGRAM.use();
 
         RenderLayers.debugQuads().draw(bb.end());
         endRender();

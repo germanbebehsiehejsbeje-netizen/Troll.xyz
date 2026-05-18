@@ -132,6 +132,7 @@ public class ModuleManager {
         add(new AutoSoup());
         add(new AutoEat());
         add(new AutoFarm());
+        add(new AutoPotFarm());
 
         //Misc
         add(new BetterInv());
@@ -189,6 +190,7 @@ public class ModuleManager {
         add(new CubeParticles());
         add(new BedTrap());
         add(new TotemPopChams());
+        add(new Particles());
 
         // Client
         add(new AutoHeypixel());

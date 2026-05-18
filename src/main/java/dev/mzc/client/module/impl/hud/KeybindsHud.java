@@ -21,9 +21,14 @@ import java.util.List;
 public class KeybindsHud extends HudModule {
     public enum Style {
         Simple("Simple"),
+<<<<<<< HEAD
         Exalted("Exalted"),
         Spirt("Spirt"),
-        Season("Season");
+        Season("Season"),
+        Compact("Compact");
+=======
+        Exalted("Exalted");
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 
         private final String name;
 
@@ -40,6 +45,13 @@ public class KeybindsHud extends HudModule {
     private final NumberValue<Double> hudScale = new NumberValue<>("Scale", 1.0, 0.7, 2.0, 0.1);
     private final EnumValue<Style> style = new EnumValue<>("Style", Style.Exalted);
 
+    // Icon font for Compact style
+    private int iconFontId = -1;
+
+    private int getCompactIconFont(float size) {
+        return FontLoader.badcache((int) size);
+    }
+
     public KeybindsHud() {
         super("Keybinds", 150, 100);
     }
@@ -54,10 +66,15 @@ public class KeybindsHud extends HudModule {
 
         if (style.is(Style.Exalted)) {
             renderExalted(active, s, inEditor);
+<<<<<<< HEAD
         } else if (style.is(Style.Spirt)) {
             renderSpirt(active, s, inEditor);
         } else if (style.is(Style.Season)) {
             renderSeason(active, s, inEditor);
+        } else if (style.is(Style.Compact)) {
+            renderCompact(active, s, inEditor);
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
         } else {
             renderSimple(active, s, inEditor);
         }
@@ -213,6 +230,7 @@ public class KeybindsHud extends HudModule {
         }
         return list;
     }
+<<<<<<< HEAD
 
     private void renderSpirt(List<Module> active, float s, boolean inEditor) {
         // Вспомогательный класс для хранения строк биндов
@@ -347,4 +365,82 @@ public class KeybindsHud extends HudModule {
             }
         });
     }
+
+    private void renderCompact(List<Module> active, float s, boolean inEditor) {
+        // Filter modules that are enabled and have a keybind set
+        List<Module> bindedModules = active.stream()
+                .filter(m -> m.getKey() != GLFW.GLFW_KEY_UNKNOWN)
+                .collect(java.util.stream.Collectors.toList());
+
+        float baseWidth = 110f * s;
+        float headerHeight = 22f * s;
+        float rowHeight = 15f * s;
+        float padding = 6f * s;
+        
+        // Calculate dynamic card height based on number of binds
+        this.width = baseWidth;
+        this.height = headerHeight + (bindedModules.size() * rowHeight) + (bindedModules.isEmpty() ? 5f * s : padding);
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // 1. Background — dark rounded rectangle (Neverlose style)
+            Color bgCard = new Color(24, 28, 34, 235);
+            Color textWhite = new Color(240, 243, 248);
+            Color textGray = new Color(155, 163, 175);
+            Color iconBlue = new Color(100, 145, 235); // Neon blue accent for icon
+
+            NanoVGHelper.drawRoundRect(x, y, width, height, 8f * s, bgCard);
+
+            // Font for header and content
+            int fontHeader = FontLoader.regular((int)(13f * s));
+            int fontContent = FontLoader.regular((int)(11.5f * s));
+
+            // Icon size
+            float iconSize = 12f * s;
+
+            // 2. Draw header icon from badcache.ttf
+            float iconFontSize = 12f * s;
+            int iconFont = getCompactIconFont(iconFontSize);
+            String iconChar = "I"; // Using Crosshair icon for keybinds
+            
+            // Draw blue glow behind icon
+            float iconW = NanoVGHelper.getTextWidth(iconChar, iconFont, iconFontSize);
+            float iconH = NanoVGHelper.getFontHeight(iconFont, iconFontSize);
+            NanoVGHelper.drawCircle(x + iconSize / 2f + 8f * s, y + headerHeight / 2f, iconSize / 2f + 1.5f * s, 
+                    new Color(100, 145, 235, 50));
+            
+            // Draw icon
+            NanoVGHelper.drawString(iconChar, x + 8f * s + iconSize / 2f, y + headerHeight / 2f + iconH * 0.3f, 
+                    iconFont, iconFontSize, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, iconBlue);
+            
+            // Header text
+            NanoVGHelper.drawString("HotKeys", x + 8f * s + iconSize + 4f * s, y + headerHeight / 2f, fontHeader, 12f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+            // 3. Render list of bound modules
+            float currentY = y + headerHeight + 2f * s;
+
+            for (Module mod : bindedModules) {
+                // Module name on the left
+                NanoVGHelper.drawString(mod.getDisplayName(), x + 8f * s, currentY + rowHeight / 2f, fontContent, 11.5f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+                // Key on the right in format [KEY]
+                String keyName = GLFW.glfwGetKeyName(mod.getKey(), 0);
+                if (keyName == null) keyName = "M"; // Fallback for default or mouse keys
+                String keyText = "[" + keyName.toUpperCase() + "]";
+
+                NanoVGHelper.drawString(keyText, x + width - 8f * s, currentY + rowHeight / 2f, fontContent, 11.5f * s, 
+                        NanoVG.NVG_ALIGN_RIGHT | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+
+                currentY += rowHeight;
+            }
+
+            if (bindedModules.isEmpty() && inEditor) {
+                NanoVGHelper.drawString("no binds", x + width / 2f, currentY + rowHeight / 2f, fontContent, 11.5f * s,
+                        NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+            }
+        });
+    }
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 }

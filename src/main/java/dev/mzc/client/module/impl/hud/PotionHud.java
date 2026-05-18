@@ -7,13 +7,9 @@ import dev.mzc.client.module.impl.client.HudEditor;
 import dev.mzc.client.nanovg.NanoVGRenderer;
 import dev.mzc.client.nanovg.font.FontLoader;
 import dev.mzc.client.nanovg.util.NanoVGHelper;
-import dev.mzc.client.values.impl.EnumValue;
 import dev.mzc.client.values.impl.NumberValue;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.nanovg.NanoVG;
 
@@ -22,10 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PotionHud extends HudModule {
+<<<<<<< HEAD
     public enum Style {
         Gamesense("Gamesense"),
         Spirt("Spirt"),
-        Season("Season");
+        Season("Season"),
+        Compact("Compact");
 
         private final String name;
 
@@ -39,8 +37,44 @@ public class PotionHud extends HudModule {
         }
     }
 
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
     private final NumberValue<Double> hudScale = new NumberValue<>("Scale", 1.0, 0.5, 2.0, 0.1);
-    private final EnumValue<Style> style = new EnumValue<>("Style", Style.Gamesense);
+
+    // Icon font for Compact style
+    private int iconFontId = -1;
+
+    private int getCompactIconFont(float size) {
+        return FontLoader.badcache((int) size);
+    }
+
+    // Map potion effects to icon characters from badcache.ttf
+    private String getPotionIconChar(net.minecraft.entity.effect.StatusEffect effect) {
+        // badcache.ttf icon mapping:
+        // A = Headshot, B = Knife, C = Sun/Visuals, D = Moon, E = Sword/Combat
+        // F = Player, G = Lightning, H = Brush/Colors, I = Crosshair, J = Soldier
+        
+        if (effect == net.minecraft.entity.effect.StatusEffects.STRENGTH) return "E"; // Sword - strength
+        if (effect == net.minecraft.entity.effect.StatusEffects.HASTE) return "E"; // Sword - haste/combat
+        if (effect == net.minecraft.entity.effect.StatusEffects.SPEED) return "G"; // Lightning - speed
+        if (effect == net.minecraft.entity.effect.StatusEffects.JUMP_BOOST) return "G"; // Lightning - jump
+        if (effect == net.minecraft.entity.effect.StatusEffects.INSTANT_HEALTH) return "F"; // Player - health
+        if (effect == net.minecraft.entity.effect.StatusEffects.REGENERATION) return "F"; // Player - regen
+        if (effect == net.minecraft.entity.effect.StatusEffects.ABSORPTION) return "F"; // Player - absorption
+        if (effect == net.minecraft.entity.effect.StatusEffects.SATURATION) return "F"; // Player - food
+        if (effect == net.minecraft.entity.effect.StatusEffects.RESISTANCE) return "A"; // Headshot/Defense
+        if (effect == net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE) return "C"; // Sun/Fire
+        if (effect == net.minecraft.entity.effect.StatusEffects.WATER_BREATHING) return "H"; // Brush/Water
+        if (effect == net.minecraft.entity.effect.StatusEffects.INVISIBILITY) return "D"; // Moon/Invisible
+        if (effect == net.minecraft.entity.effect.StatusEffects.NIGHT_VISION) return "C"; // Sun/Vision
+        if (effect == net.minecraft.entity.effect.StatusEffects.SLOWNESS) return "B"; // Knife/Slow
+        if (effect == net.minecraft.entity.effect.StatusEffects.WEAKNESS) return "B"; // Knife/Weak
+        if (effect == net.minecraft.entity.effect.StatusEffects.POISON) return "B"; // Knife/Poison
+        if (effect == net.minecraft.entity.effect.StatusEffects.WITHER) return "B"; // Knife/Wither
+        
+        // Default icon
+        return "F"; // Player icon as default
+    }
 
     public PotionHud() {
         super("PotionHud", 10, 150);
@@ -59,16 +93,21 @@ public class PotionHud extends HudModule {
 
         if (effects.isEmpty() && !inEditor) return;
 
+<<<<<<< HEAD
         if (style.get() == Style.Spirt) {
             renderSpirt(context, effects, s, font, fontSize, inEditor);
         } else if (style.get() == Style.Season) {
             renderSeason(context, effects, s, font, fontSize, inEditor);
+        } else if (style.get() == Style.Compact) {
+            renderCompact(context, effects, s, font, fontSize, inEditor);
         } else {
             renderGamesense(context, effects, s, font, fontSize, inEditor);
         }
     }
 
     private void renderGamesense(DrawContext context, List<StatusEffectInstance> effects, float s, int font, float fontSize, boolean inEditor) {
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
         float padding = 8 * s;
         float rowHeight = 16 * s;
         float titleHeight = 18 * s;
@@ -122,72 +161,6 @@ public class PotionHud extends HudModule {
         });
     }
 
-    private void renderSpirt(DrawContext context, List<StatusEffectInstance> effects, float s, int font, float fontSize, boolean inEditor) {
-        // SpirtHack цвета
-        Color bg = new Color(22, 19, 41, 240);
-        Color accent = new Color(110, 85, 235);
-        Color lineColors = new Color(29, 25, 54, 150);
-        Color textWhite = new Color(220, 220, 225);
-
-        float pad = 10f * s;
-        float rowHeight = 24f * s;
-        float titleHeight = 26f * s;
-        float radius = 5f * s;
-        float iconSize = 18f * s;
-
-        this.width = 160f * s;
-        this.height = titleHeight + (effects.isEmpty() ? (inEditor ? rowHeight : 0) : effects.size() * rowHeight) + 4f * s;
-
-        NanoVGRenderer.INSTANCE.draw(vg -> {
-            // Рисуем закругленный фон всей панели
-            NanoVGHelper.drawRoundRect(x, y, width, height, radius, bg);
-
-            // 1. Отрисовка шапки "» Potions"
-            NanoVGHelper.drawString("»", x + pad, y + titleHeight / 2f, font, fontSize,
-                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, accent);
-            
-            NanoVGHelper.drawString("Potions", x + pad + 14f * s, y + titleHeight / 2f, font, fontSize,
-                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
-
-            // Линия под шапкой
-            NanoVGHelper.drawRect(x, y + titleHeight, width, 1f * s, lineColors);
-
-            // 2. Отрисовка строк с зельями
-            float currentY = y + titleHeight;
-            for (int i = 0; i < effects.size(); i++) {
-                StatusEffectInstance se = effects.get(i);
-                String name = getEffectName(se).toLowerCase();
-                String time = formatDuration(se.getDuration());
-
-                // Рисуем иконку зелья через Minecraft RenderSystem
-                int iconX = (int)(x + pad);
-                int iconY = (int)(currentY + (rowHeight - iconSize) / 2f);
-                drawPotionIcon(context, se, iconX, iconY, (int)iconSize);
-
-                // Название зелья (после иконки)
-                float nameX = x + pad + iconSize + 5f * s;
-                NanoVGHelper.drawString(name, nameX, currentY + rowHeight / 2f, font, 12f * s,
-                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
-
-                // Время (справа, фиолетовое)
-                NanoVGHelper.drawString(time, x + width - pad, currentY + rowHeight / 2f, font, 12f * s,
-                        NanoVG.NVG_ALIGN_RIGHT | NanoVG.NVG_ALIGN_MIDDLE, accent);
-
-                // Рисуем разделяющую линию для всех строк, кроме последней
-                if (i < effects.size() - 1) {
-                    NanoVGHelper.drawRect(x, currentY + rowHeight, width, 1f * s, lineColors);
-                }
-
-                currentY += rowHeight;
-            }
-            
-            if (effects.isEmpty() && inEditor) {
-                NanoVGHelper.drawString("no effects", x + width / 2f, currentY + rowHeight / 2f, font, 12f * s,
-                        NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, new Color(100, 100, 100));
-            }
-        });
-    }
-
     private String getEffectName(StatusEffectInstance se) {
         String name = se.getEffectType().value().getName().getString();
         int amp = se.getAmplifier();
@@ -195,9 +168,15 @@ public class PotionHud extends HudModule {
     }
 
     private String formatDuration(int ticks) {
-        int seconds = Math.max(0, ticks / 20);
-        return String.format("%d:%02d", seconds / 60, seconds % 60);
+        if (ticks == -1 || ticks > 1000000) {
+            return "**:**";
+        }
+        int totalSeconds = ticks / 20;
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
     }
+<<<<<<< HEAD
 
     private void drawPotionIcon(DrawContext context, StatusEffectInstance effect, int x, int y, int size) {
         try {
@@ -249,66 +228,295 @@ public class PotionHud extends HudModule {
     }
 
     private void renderSeason(DrawContext context, List<StatusEffectInstance> effects, float s, int font, float fontSize, boolean inEditor) {
-        class Potion {
-            String name, duration;
-            public Potion(String name, String duration) { 
-                this.name = name; 
-                this.duration = duration; 
-            }
+        if (effects.isEmpty() && !inEditor) return;
+
+        int fontRegular = FontLoader.regular(12);
+        int fontBold = FontLoader.regular(13);
+
+        float cardW = 120f * s;
+        float cardH = 32f * s;
+        float spacing = 5f * s;
+        float radius = 8f * s;
+
+        this.width = cardW;
+        this.height = (cardH + spacing) * effects.size() - spacing;
+
+        // Copy to avoid ConcurrentModificationException
+        List<StatusEffectInstance> effectList = new ArrayList<>(effects);
+
+        // Clean up animations for removed effects
+        java.util.Set<String> currentKeys = new java.util.HashSet<>();
+        for (StatusEffectInstance effect : effectList) {
+            currentKeys.add(effect.getEffectType().value().getName().getString());
         }
-
-        // Заполняем список эффектов
-        List<Potion> potionList = new ArrayList<>();
-        for (StatusEffectInstance se : effects) {
-            potionList.add(new Potion(getEffectName(se).toLowerCase(), formatDuration(se.getDuration())));
-        }
-
-        if (potionList.isEmpty() && !inEditor) return;
-
-        Color colorHeader = new Color(255, 255, 255, 255);
-        Color colorBody = new Color(175, 175, 175, 220);
-        Color textDark = new Color(25, 25, 25);
-        Color textGray = new Color(70, 70, 70);
-
-        float radius = 10f * s;
-        float headerH = 26f * s;
-        float rowH = 20f * s;
-
-        this.width = 145f * s;
-        this.height = headerH + (potionList.size() * rowH) + 6f * s;
+        effectAnimations.keySet().removeIf(key -> !currentKeys.contains(key));
 
         NanoVGRenderer.INSTANCE.draw(vg -> {
-            // Тень панели
-            NanoVGHelper.drawRoundRect(x, y + 2f * s, width, height, radius, new Color(0, 0, 0, 35));
+            float currentY = y;
 
-            // Фон и шапка
-            NanoVGHelper.drawRoundRect(x, y, width, height, radius, colorBody);
-            NanoVGHelper.drawRoundRect(x, y, width, headerH + 4f * s, radius, colorHeader);
-            NanoVGHelper.drawRect(x, y + headerH - 1f * s, width, 5f * s, colorHeader);
-
-            int fontS = FontLoader.regular((int)(13f * s));
-
-            // Иконка колбы (символ ⚗) и заголовок
-            NanoVGHelper.drawString("⚗", x + 11f * s, y + headerH / 2f, fontS, 14f * s, 
-                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
-            NanoVGHelper.drawString("Potions", x + 28f * s, y + headerH / 2f, fontS, 12.5f * s, 
-                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
-
-            // Вывод эффектов
-            float currentY = y + headerH + 3f * s;
-            for (Potion p : potionList) {
-                NanoVGHelper.drawString(p.name, x + 12f * s, currentY + rowH / 2f, fontS, 12f * s, 
-                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+            for (int i = 0; i < effectList.size(); i++) {
+                StatusEffectInstance effect = effectList.get(i);
+                var effectType = effect.getEffectType();
+                String name = effectType.value().getName().getString();
+                String effectKey = name;
                 
-                NanoVGHelper.drawString(p.duration, x + width - 12f * s, currentY + rowH / 2f, fontS, 12f * s, 
-                        NanoVG.NVG_ALIGN_RIGHT | NanoVG.NVG_ALIGN_MIDDLE, textDark);
-                currentY += rowH;
-            }
-            
-            if (potionList.isEmpty() && inEditor) {
-                NanoVGHelper.drawString("no effects", x + width / 2f, currentY + rowH / 2f, fontS, 12f * s,
-                        NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, new Color(100, 100, 100));
+                // Get animation progress
+                float rawProgress = getAnimationProgress(effectKey);
+                float animProgress = easeOutCubic(rawProgress);
+                
+                // Format duration to MM:SS
+                int durationTicks = effect.getDuration();
+                String timeText = formatDuration(durationTicks);
+
+                // Extract effect color for left indicator and heart
+                int colorRGB = effectType.value().getColor();
+                Color effectColor = new Color(colorRGB);
+                
+                // Brighten color if too dark
+                effectColor = brightenColor(effectColor, 1.3f);
+
+                // Calculate animated position (slide from right)
+                float slideOffset = (1.0f - animProgress) * 30f * s;
+                float cardX = x + slideOffset;
+                
+                // Calculate animated alpha and scale
+                float cardAlpha = animProgress;
+                float cardScale = 0.95f + (0.05f * animProgress);
+                float scaledCardW = cardW * cardScale;
+                float scaledCardH = cardH * cardScale;
+                float yOffset = (cardH - scaledCardH) / 2f;
+
+                // Card colors with glass effect
+                Color bgCard = new Color(15, 15, 17, (int)(220 * cardAlpha));
+                Color glassHighlight = new Color(255, 255, 255, (int)(30 * cardAlpha));
+                Color textMain = new Color(240, 240, 245, (int)(255 * cardAlpha));
+                
+                // Timer turns red if less than 15 seconds (300 ticks)
+                Color timeColor = (durationTicks <= 300) 
+                        ? new Color(230, 70, 70, (int)(255 * cardAlpha)) 
+                        : new Color(180, 180, 185, (int)(255 * cardAlpha));
+
+                // Bloom glow color
+                Color bloomColor = new Color(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), (int)(80 * cardAlpha * animProgress));
+
+                // Apply vertical offset for scaling
+                float adjustedY = currentY + yOffset;
+
+                // === BLOOM EFFECT ===
+                // Draw bloom glow behind card
+                for (int bloomLayer = 3; bloomLayer > 0; bloomLayer--) {
+                    float bloomSize = 4f * s * bloomLayer;
+                    float bloomAlpha = (0.15f / bloomLayer) * cardAlpha * animProgress;
+                    Color bloomGlow = new Color(
+                            effectColor.getRed(), 
+                            effectColor.getGreen(), 
+                            effectColor.getBlue(), 
+                            (int)(255 * bloomAlpha)
+                    );
+                    NanoVGHelper.drawRoundRect(
+                            cardX - bloomSize / 2f, 
+                            adjustedY - bloomSize / 2f,
+                            scaledCardW + bloomSize, 
+                            scaledCardH + bloomSize, 
+                            radius + bloomSize, 
+                            bloomGlow
+                    );
+                }
+
+                // === GLASS CARD BACKGROUND ===
+                // Main dark card
+                NanoVGHelper.drawRoundRect(cardX, adjustedY, scaledCardW, scaledCardH, radius, bgCard);
+                
+                // Glass highlight (top gradient)
+                NanoVGHelper.drawGradientRect(
+                        cardX + 1f * s, 
+                        adjustedY + 1f * s, 
+                        scaledCardW - 2f * s, 
+                        scaledCardH * 0.4f, 
+                        glassHighlight, 
+                        new Color(255, 255, 255, 0)
+                );
+                
+                // Glass border (subtle white edge)
+                NanoVGHelper.drawRoundRectOutline(cardX, adjustedY, scaledCardW, scaledCardH, radius, 1.5f * s, 
+                        new Color(255, 255, 255, (int)(40 * cardAlpha)));
+
+                // === LEFT VERTICAL COLORED INDICATOR ===
+                NanoVGHelper.drawRoundRect(cardX, adjustedY, 5f * s * animProgress, scaledCardH, radius, effectColor);
+                NanoVGHelper.drawRect(cardX + 2.5f * s, adjustedY, 2.5f * s * animProgress, scaledCardH, effectColor);
+
+                // === HEART ICON '❤' with bloom ===
+                float heartX = cardX + 18f * s;
+                float heartY = adjustedY + scaledCardH / 2f;
+                
+                // Heart bloom
+                NanoVGHelper.drawCenteredString("❤", heartX, heartY + 1f * s, fontBold, 22f * s, 
+                        new Color(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), (int)(100 * cardAlpha * animProgress)));
+                // Main heart
+                NanoVGHelper.drawCenteredString("❤", heartX, heartY + 1f * s, fontBold, 18f * s, effectColor);
+
+                // === TEXT ===
+                float textX = cardX + 34f * s;
+                
+                // Effect name with fade-in
+                NanoVGHelper.drawString(name, textX, adjustedY + 10f * s, fontBold, 12.5f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textMain);
+                
+                // Timer with fade-in
+                NanoVGHelper.drawString(timeText, textX, adjustedY + 22f * s, fontRegular, 11f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, timeColor);
+
+                // Move Y coordinate for next effect card
+                currentY += cardH + spacing;
             }
         });
     }
+
+    private Color brightenColor(Color color, float factor) {
+        int r = Math.min(255, (int)(color.getRed() * factor));
+        int g = Math.min(255, (int)(color.getGreen() * factor));
+        int b = Math.min(255, (int)(color.getBlue() * factor));
+        return new Color(r, g, b, color.getAlpha());
+    }
+
+    // Animation tracking for Season style
+    private java.util.Map<String, Float> effectAnimations = new java.util.HashMap<>();
+    private long lastFrameTime = 0;
+
+    private float getAnimationProgress(String effectKey) {
+        long currentTime = System.nanoTime();
+        if (lastFrameTime == 0) {
+            lastFrameTime = currentTime;
+            effectAnimations.clear();
+        }
+        
+        float delta = (currentTime - lastFrameTime) / 1_000_000_000f;
+        lastFrameTime = currentTime;
+        
+        // Initialize new effects at 0
+        if (!effectAnimations.containsKey(effectKey)) {
+            effectAnimations.put(effectKey, 0f);
+        }
+        
+        // Smoothly animate to 1.0
+        float progress = effectAnimations.get(effectKey);
+        progress = Math.min(1.0f, progress + delta * 5.0f); // 5 = faster animation speed
+        effectAnimations.put(effectKey, progress);
+        
+        return progress;
+    }
+
+    private float easeOutCubic(float t) {
+        return 1.0f - (float) Math.pow(1.0f - t, 3);
+    }
+
+    private void renderCompact(DrawContext context, List<StatusEffectInstance> effects, float s, int font, float fontSize, boolean inEditor) {
+        if (effects.isEmpty() && !inEditor) return;
+
+        float baseWidth = 135f * s;
+        float headerHeight = 22f * s;
+        float rowHeight = 18f * s;
+        float paddingBottom = 6f * s;
+
+        this.width = baseWidth;
+        this.height = headerHeight + (effects.size() * rowHeight) + paddingBottom;
+
+        List<StatusEffectInstance> effectList = new ArrayList<>(effects);
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            Color bgCard = new Color(24, 28, 34, 235);
+            Color textWhite = new Color(240, 243, 248);
+            Color textGray = new Color(160, 165, 175);
+            Color iconBlue = new Color(110, 155, 245);
+
+            // 1. Render main card body
+            NanoVGHelper.drawRoundRect(x, y, width, height, 8f * s, bgCard);
+
+            // Fonts for different elements
+            int fontHeader = FontLoader.regular((int)(13f * s));
+            int fontName = FontLoader.regular((int)(11.5f * s));
+            int fontTimer = FontLoader.regular((int)(11f * s));
+
+            // Icon size
+            float iconSize = 12f * s;
+
+            // 2. Draw header icon from badcache.ttf
+            float iconFontSize = 12f * s;
+            int iconFont = getCompactIconFont(iconFontSize);
+            String headerIconChar = "F"; // Using Player icon for potions
+            
+            // Draw blue glow behind icon
+            float iconW = NanoVGHelper.getTextWidth(headerIconChar, iconFont, iconFontSize);
+            float iconH = NanoVGHelper.getFontHeight(iconFont, iconFontSize);
+            NanoVGHelper.drawCircle(x + iconSize / 2f + 8f * s, y + headerHeight / 2f, iconSize / 2f + 1.5f * s, 
+                    new Color(110, 155, 245, 50));
+            
+            // Draw icon
+            NanoVGHelper.drawString(headerIconChar, x + 8f * s + iconSize / 2f, y + headerHeight / 2f + iconH * 0.3f, 
+                    iconFont, iconFontSize, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, iconBlue);
+            
+            // Header text
+            NanoVGHelper.drawString("Potions", x + 8f * s + iconSize + 4f * s, y + headerHeight / 2f, fontHeader, 12f * s, 
+                    NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+            // 3. Render potion effects
+            float currentY = y + headerHeight + 2f * s;
+
+            for (StatusEffectInstance effect : effectList) {
+                String name = effect.getEffectType().value().getName().getString();
+                
+                // Get icon character and color for this effect
+                String effectIconChar = getPotionIconChar(effect.getEffectType().value());
+                int effectColorRGB = effect.getEffectType().value().getColor();
+                Color iconColor = new Color(effectColorRGB);
+
+                // Draw effect icon using icon.ttf
+                float effectIconX = x + 9f * s + iconSize / 2f;
+                float effectIconY = currentY + (rowHeight - iconSize) / 2f + iconSize * 0.3f;
+                
+                // Draw colored glow behind icon
+                NanoVGHelper.drawCircle(effectIconX, effectIconY - iconSize * 0.3f + iconSize / 2f, 
+                        iconSize / 2f + 1f * s, new Color(iconColor.getRed(), iconColor.getGreen(), iconColor.getBlue(), 40));
+                
+                // Draw icon
+                NanoVGHelper.drawString(effectIconChar, effectIconX, effectIconY, 
+                        fontName, iconSize, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, iconColor);
+
+                // Effect name
+                NanoVGHelper.drawString(name, x + 9f * s + iconSize + 5f * s, currentY + rowHeight / 2f, fontName, 11.5f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+                // 4. Custom timer with superscript seconds
+                int totalSecs = effect.getDuration() / 20;
+                int mins = totalSecs / 60;
+                int secs = totalSecs % 60;
+
+                String minStr = mins + ":";
+                String secStr = String.format("%02d", secs);
+
+                // Draw minutes and colon
+                float minWidth = NanoVGHelper.getTextWidth(minStr, fontTimer, 11f * s);
+                float secWidth = NanoVGHelper.getTextWidth(secStr, fontTimer, 9f * s);
+                
+                float startTimerX = x + width - 10f * s - minWidth - secWidth;
+
+                // Minutes (Normal size)
+                NanoVGHelper.drawString(minStr, startTimerX, currentY + rowHeight / 2f, fontTimer, 11f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+
+                // Seconds (Slightly smaller)
+                NanoVGHelper.drawString(secStr, startTimerX + minWidth, currentY + rowHeight / 2f, fontTimer, 9f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+
+                currentY += rowHeight;
+            }
+
+            if (effects.isEmpty() && inEditor) {
+                NanoVGHelper.drawString("no effects", x + width / 2f, currentY + rowHeight / 2f, fontName, 11.5f * s,
+                        NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, textGray);
+            }
+        });
+    }
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 }

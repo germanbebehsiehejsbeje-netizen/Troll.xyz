@@ -21,10 +21,15 @@ import java.time.format.DateTimeFormatter;
 public class WatermarkHud extends HudModule {
     public enum Style { 
         Gamesense("Gamesense"),
+<<<<<<< HEAD
         Exalted("Exalted"),
         Spirt("Spirt"),
         Season("Season"),
-        TROLLHACK("Trollhack");
+        TROLLHACK("Trollhack"),
+        Compact("Compact");
+=======
+        Exalted("Exalted");
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 
         private final String name;
 
@@ -44,6 +49,13 @@ public class WatermarkHud extends HudModule {
     private final BoolValue showPing = new BoolValue("Ping", true);
     private final BoolValue showTime = new BoolValue("Time", true);
 
+    // Icon font for Compact style
+    private int iconFontId = -1;
+
+    private int getCompactIconFont(float size) {
+        return FontLoader.badcache((int) size);
+    }
+
     public WatermarkHud() {
         super("Watermark", 10, 10);
     }
@@ -54,12 +66,17 @@ public class WatermarkHud extends HudModule {
 
         if (style.is(Style.Exalted)) {
             renderExalted(s);
+<<<<<<< HEAD
         } else if (style.is(Style.Spirt)) {
             renderSpirt(s);
         } else if (style.is(Style.Season)) {
             renderSeason(s);
         } else if (style.is(Style.TROLLHACK)) {
             renderTrollhack(s);
+        } else if (style.is(Style.Compact)) {
+            renderCompact(s);
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
         } else {
             renderGamesense(s);
         }
@@ -228,6 +245,7 @@ public class WatermarkHud extends HudModule {
         var entry = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid());
         return entry != null ? Math.max(entry.getLatency(), 0) : 0;
     }
+<<<<<<< HEAD
 
     private void renderSpirt(float s) {
         if (mc.player == null) return;
@@ -397,4 +415,87 @@ public class WatermarkHud extends HudModule {
                     NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
         });
     }
+
+    private void renderCompact(float s) {
+        if (mc.world == null || mc.player == null) return;
+
+        // Collect data as in sample: branch | nick | server | fps | fps
+        String branch = "alpha";
+        String userName = mc.getSession().getUsername().toLowerCase();
+        
+        String serverIp = "local";
+        if (mc.getCurrentServerEntry() != null) {
+            serverIp = mc.getCurrentServerEntry().address.toLowerCase();
+        }
+
+        String fpsText = mc.getCurrentFps() + " fps";
+        String splitter = "  |  ";
+
+        // Form the resulting line for accurate calculation of capsule width
+        String fullText = branch + splitter + userName + splitter + serverIp + splitter + fpsText + splitter + fpsText;
+
+        int fontText = FontLoader.regular((int)(11f * s));
+        int fontSep = FontLoader.regular((int)(10f * s));
+        float textWidth = NanoVGHelper.getTextWidth(fullText, fontText, 11f * s);
+
+        // Icon size
+        float iconSize = 14f * s;
+        
+        // Long capsule geometry
+        float paddingX = 10f * s;
+        this.width = iconSize + paddingX + textWidth + paddingX;
+        this.height = 20f * s; // Narrow elongated strip
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            Color bgCap = new Color(25, 29, 36, 240);       // Dark capsule background
+            Color logoBlue = new Color(115, 160, 250);     // Light blue neon for glow
+            Color textWhite = new Color(235, 240, 245);     // Main parameter text
+            Color splitColor = new Color(55, 62, 74, 255);  // Dark gray thin '|' separators
+
+            // 1. Draw capsule with strong corner radius (height / 2 gives perfect oval on sides)
+            NanoVGHelper.drawRoundRect(x, y, width, height, height / 2f, bgCap);
+
+            // 2. Draw icon from badcache.ttf on the left
+            float iconFontSize = 14f * s;
+            int iconFont = getCompactIconFont(iconFontSize);
+            String iconChar = "F"; // Using Player icon for watermark
+            
+            // Draw blue glow behind icon
+            float iconW = NanoVGHelper.getTextWidth(iconChar, iconFont, iconFontSize);
+            float iconH = NanoVGHelper.getFontHeight(iconFont, iconFontSize);
+            NanoVGHelper.drawCircle(x + iconSize / 2f + 2f * s, y + height / 2f, iconSize / 2f + 2f * s, 
+                    new Color(115, 160, 250, 60));
+            
+            // Draw icon
+            NanoVGHelper.drawString(iconChar, x + iconSize / 2f, y + height / 2f + iconH * 0.3f, 
+                    iconFont, iconFontSize, NanoVG.NVG_ALIGN_CENTER | NanoVG.NVG_ALIGN_MIDDLE, logoBlue);
+
+            // Starting coordinate for text after icon
+            float currentX = x + iconSize + paddingX;
+
+            // Split the line into elements to color separators gray and text white
+            String[] tokens = fullText.split("\\|");
+            
+            for (int i = 0; i < tokens.length; i++) {
+                String token = tokens[i].trim();
+                
+                // Output information word
+                NanoVGHelper.drawString(token, currentX, y + height / 2f, fontText, 11f * s, 
+                        NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, textWhite);
+                currentX += NanoVGHelper.getTextWidth(token, fontText, 11f * s);
+
+                // If this is not the last element, draw gray separator '|'
+                if (i < tokens.length - 1) {
+                    float spaceW = NanoVGHelper.getTextWidth("  ", fontText, 11f * s);
+                    currentX += spaceW;
+                    
+                    NanoVGHelper.drawString("|", currentX, y + height / 2f - 0.5f * s, fontSep, 10f * s, 
+                            NanoVG.NVG_ALIGN_LEFT | NanoVG.NVG_ALIGN_MIDDLE, splitColor);
+                    currentX += NanoVGHelper.getTextWidth("|", fontSep, 10f * s) + spaceW;
+                }
+            }
+        });
+    }
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 }

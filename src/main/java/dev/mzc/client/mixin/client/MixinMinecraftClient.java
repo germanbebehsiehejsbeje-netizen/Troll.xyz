@@ -16,6 +16,7 @@ import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.util.Window;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -66,7 +67,8 @@ public abstract class MixinMinecraftClient {
         MovementUtil.isAttacking = true;
         if (player != null && ((MinecraftClient) (Object) this).crosshairTarget instanceof EntityHitResult entityHitResult) {
             Entity entity = entityHitResult.getEntity();
-            Sakura.EVENT_BUS.post(new AttackEvent(entity));
+            Vec3d hitPos = entityHitResult.getPos();
+            Sakura.EVENT_BUS.post(new AttackEvent(entity, hitPos));
         }
     }
 

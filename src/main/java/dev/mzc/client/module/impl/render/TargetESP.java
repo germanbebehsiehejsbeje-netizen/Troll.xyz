@@ -38,11 +38,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class TargetESP extends Module {
 
     public enum EspMode {
-        Target, Jello, Spirits, Spirits1, Spirits2, Circle, GhostOrbits, Crystals
+        Target, Jello, Spirits, Spirits1, Spirits2, Circle, GhostOrbits, Crystals, Square, Pulse, Ring, Lightning, Helix, Shockwave, BlackHole
     }
 
     public enum ColorMode {
@@ -65,6 +66,7 @@ public class TargetESP extends Module {
     private static final Identifier TARGET_TEX = Identifier.of("sakura", "particle/ghost-glow.png");
     private static final Identifier TARGET1_TEX = Identifier.of("sakura", "particle/ghost-triangle.png");
     private static final Identifier GLOW_TEXTURE = Identifier.of("sakura", "particle/glow.png");
+    private static final Identifier SQUARE_TARGET_TEX = Identifier.of("sakura", "textures/square_target_esp.png");
 
     private final DecelerateAnimation animation = new DecelerateAnimation(400, 1.0);
     private final DecelerateAnimation animation2 = new DecelerateAnimation(250, 1.0);
@@ -181,6 +183,13 @@ public class TargetESP extends Module {
             case Circle -> drawCircle(event);
             case GhostOrbits -> drawGhostOrbits(event);
             case Crystals -> renderCrystals(event);
+            case Square -> renderSquare(event);
+            case Pulse -> renderPulse(event);
+            case Ring -> renderRing(event);
+            case Lightning -> renderLightning(event);
+            case Helix -> renderHelix(event);
+            case Shockwave -> renderShockwave(event);
+            case BlackHole -> renderBlackHole(event);
         }
     }
 
@@ -819,6 +828,554 @@ public class TargetESP extends Module {
         GlStateManager._depthMask(true);
         GlStateManager._enableDepthTest();
         GlStateManager._disableBlend();
+    }
+
+    private void renderSquare(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d cam = mc.getEntityRenderDispatcher().camera.getCameraPos();
+
+        double ex = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - cam.x;
+        double ey = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - cam.y;
+        double ez = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - cam.z;
+
+        float entityHeight = target.getHeight();
+
+        rotation -= rotationSpeed.get().floatValue();
+        if (rotation <= -360f) rotation += 360f;
+
+        float size = espSize.get().floatValue() * 0.6f * animation.getOutput().floatValue();
+
+        matrices.push();
+        matrices.translate(ex, ey + entityHeight * 0.5, ez);
+
+        Camera camera = mc.gameRenderer.getCamera();
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-camera.getYaw()));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(rotation));
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 771, 1, 0);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+
+        drawTextureQuad(matrices, size, SQUARE_TARGET_TEX, animation.getOutput().floatValue());
+
+        GlStateManager._enableCull();
+        GlStateManager._enableDepthTest();
+        GlStateManager._disableBlend();
+
+        matrices.pop();
+    }
+
+    private void renderPulse(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double x = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double y = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double z = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        float entityWidth = target.getWidth();
+
+        long time = System.currentTimeMillis();
+        float pulseSpeed = 0.003f;
+        float pulse = (float) Math.sin(time * pulseSpeed) * 0.5f + 0.5f;
+        float baseRadius = entityWidth * espSize.get().floatValue();
+        float radius = baseRadius * (0.8f + pulse * 0.4f);
+
+        matrices.push();
+        matrices.translate(x, y + entityHeight * 0.5, z);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+
+        int segments = 60;
+        float alphaMult = animation.getOutput().floatValue();
+        Color color = getColorForProgress(pulse);
+        int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (150 * alphaMult));
+
+        for (int i = 0; i < segments; i++) {
+            float p1 = i / (float) segments;
+            float p2 = (i + 1) / (float) segments;
+            double a1 = (Math.PI * 2.0) * p1;
+            double a2 = (Math.PI * 2.0) * p2;
+            float x1 = (float) (Math.cos(a1) * radius);
+            float z1 = (float) (Math.sin(a1) * radius);
+            float x2 = (float) (Math.cos(a2) * radius);
+            float z2 = (float) (Math.sin(a2) * radius);
+
+            buffer.vertex(matrix, x1, 0, z1).color(rgba);
+            buffer.vertex(matrix, 0, 0, 0).color(rgba);
+            buffer.vertex(matrix, x2, 0, z2).color(rgba);
+        }
+
+        RenderLayers.debugQuads().draw(buffer.end());
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
+    }
+
+    private void renderRing(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double x = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double y = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double z = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        float entityWidth = target.getWidth();
+
+        rotation -= rotationSpeed.get().floatValue() * 0.5f;
+        if (rotation <= -360f) rotation += 360f;
+
+        float baseRadius = entityWidth * espSize.get().floatValue();
+        float ringThickness = 0.08f;
+
+        matrices.push();
+        matrices.translate(x, y + entityHeight * 0.1, z);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+
+        int segments = 80;
+        float alphaMult = animation.getOutput().floatValue();
+        Color color = getColorForProgress(0);
+        int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (200 * alphaMult));
+
+        for (int i = 0; i < segments; i++) {
+            float p1 = i / (float) segments;
+            float p2 = (i + 1) / (float) segments;
+            double a1 = (Math.PI * 2.0) * p1;
+            double a2 = (Math.PI * 2.0) * p2;
+
+            float outerR = baseRadius;
+            float innerR = baseRadius - ringThickness;
+
+            float x1Outer = (float) (Math.cos(a1) * outerR);
+            float z1Outer = (float) (Math.sin(a1) * outerR);
+            float x2Outer = (float) (Math.cos(a2) * outerR);
+            float z2Outer = (float) (Math.sin(a2) * outerR);
+
+            float x1Inner = (float) (Math.cos(a1) * innerR);
+            float z1Inner = (float) (Math.sin(a1) * innerR);
+            float x2Inner = (float) (Math.cos(a2) * innerR);
+            float z2Inner = (float) (Math.sin(a2) * innerR);
+
+            buffer.vertex(matrix, x1Outer, 0, z1Outer).color(rgba);
+            buffer.vertex(matrix, x1Inner, 0, z1Inner).color(rgba);
+            buffer.vertex(matrix, x2Inner, 0, z2Inner).color(rgba);
+            buffer.vertex(matrix, x2Outer, 0, z2Outer).color(rgba);
+        }
+
+        RenderLayers.debugQuads().draw(buffer.end());
+
+        // Second ring at different height
+        matrices.push();
+        matrices.translate(0, entityHeight * 0.4, 0);
+        matrix = matrices.peek().getPositionMatrix();
+        
+        BufferBuilder buffer2 = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        Color color2 = getColorForProgress(0.5f);
+        int rgba2 = ColorUtil.getColor(color2.getRed(), color2.getGreen(), color2.getBlue(), (int) (150 * alphaMult));
+
+        for (int i = 0; i < segments; i++) {
+            float p1 = i / (float) segments;
+            float p2 = (i + 1) / (float) segments;
+            double a1 = (Math.PI * 2.0) * p1;
+            double a2 = (Math.PI * 2.0) * p2;
+
+            float outerR = baseRadius * 0.9f;
+            float innerR = outerR - ringThickness;
+
+            float x1Outer = (float) (Math.cos(a1) * outerR);
+            float z1Outer = (float) (Math.sin(a1) * outerR);
+            float x2Outer = (float) (Math.cos(a2) * outerR);
+            float z2Outer = (float) (Math.sin(a2) * outerR);
+
+            float x1Inner = (float) (Math.cos(a1) * innerR);
+            float z1Inner = (float) (Math.sin(a1) * innerR);
+            float x2Inner = (float) (Math.cos(a2) * innerR);
+            float z2Inner = (float) (Math.sin(a2) * innerR);
+
+            buffer2.vertex(matrix, x1Outer, 0, z1Outer).color(rgba2);
+            buffer2.vertex(matrix, x1Inner, 0, z1Inner).color(rgba2);
+            buffer2.vertex(matrix, x2Inner, 0, z2Inner).color(rgba2);
+            buffer2.vertex(matrix, x2Outer, 0, z2Outer).color(rgba2);
+        }
+
+        RenderLayers.debugQuads().draw(buffer2.end());
+        matrices.pop();
+
+        // Third ring
+        matrices.push();
+        matrices.translate(0, entityHeight * 0.8, 0);
+        matrix = matrices.peek().getPositionMatrix();
+        
+        BufferBuilder buffer3 = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        Color color3 = getColorForProgress(0.75f);
+        int rgba3 = ColorUtil.getColor(color3.getRed(), color3.getGreen(), color3.getBlue(), (int) (100 * alphaMult));
+
+        for (int i = 0; i < segments; i++) {
+            float p1 = i / (float) segments;
+            float p2 = (i + 1) / (float) segments;
+            double a1 = (Math.PI * 2.0) * p1;
+            double a2 = (Math.PI * 2.0) * p2;
+
+            float outerR = baseRadius * 0.75f;
+            float innerR = outerR - ringThickness;
+
+            float x1Outer = (float) (Math.cos(a1) * outerR);
+            float z1Outer = (float) (Math.sin(a1) * outerR);
+            float x2Outer = (float) (Math.cos(a2) * outerR);
+            float z2Outer = (float) (Math.sin(a2) * outerR);
+
+            float x1Inner = (float) (Math.cos(a1) * innerR);
+            float z1Inner = (float) (Math.sin(a1) * innerR);
+            float x2Inner = (float) (Math.cos(a2) * innerR);
+            float z2Inner = (float) (Math.sin(a2) * innerR);
+
+            buffer3.vertex(matrix, x1Outer, 0, z1Outer).color(rgba3);
+            buffer3.vertex(matrix, x1Inner, 0, z1Inner).color(rgba3);
+            buffer3.vertex(matrix, x2Inner, 0, z2Inner).color(rgba3);
+            buffer3.vertex(matrix, x2Outer, 0, z2Outer).color(rgba3);
+        }
+
+        RenderLayers.debugQuads().draw(buffer3.end());
+        matrices.pop();
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
+    }
+
+    private void renderLightning(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double tx = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double ty = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double tz = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        float entityWidth = target.getWidth();
+
+        long time = System.currentTimeMillis();
+        float alphaMult = animation.getOutput().floatValue();
+
+        matrices.push();
+        matrices.translate(tx, ty, tz);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR);
+
+        Random random = new Random(time);
+        int numBolts = 8;
+        float baseRadius = entityWidth * espSize.get().floatValue() * 1.5f;
+
+        for (int i = 0; i < numBolts; i++) {
+            Color color = getColorForProgress(i / (float) numBolts);
+            int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (200 * alphaMult));
+
+            // Generate lightning bolt from top to bottom
+            float startY = entityHeight;
+            float endY = 0;
+            int segments = 12;
+            float segmentHeight = (startY - endY) / segments;
+
+            float prevX = (float) ((random.nextDouble() - 0.5) * baseRadius * 0.5);
+            float prevZ = (float) ((random.nextDouble() - 0.5) * baseRadius * 0.5);
+            float prevY = startY;
+
+            for (int j = 0; j < segments; j++) {
+                float currY = startY - (j + 1) * segmentHeight;
+                float currX = prevX + (float) ((random.nextDouble() - 0.5) * baseRadius * 0.3);
+                float currZ = prevZ + (float) ((random.nextDouble() - 0.5) * baseRadius * 0.3);
+
+                // Clamp to reasonable bounds
+                currX = MathHelper.clamp(currX, -baseRadius, baseRadius);
+                currZ = MathHelper.clamp(currZ, -baseRadius, baseRadius);
+
+                buffer.vertex(matrix, prevX, prevY, prevZ).color(rgba);
+                buffer.vertex(matrix, currX, currY, currZ).color(rgba);
+
+                prevX = currX;
+                prevZ = currZ;
+                prevY = currY;
+            }
+        }
+
+        RenderLayers.lines().draw(buffer.end());
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
+    }
+
+    private void renderHelix(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double tx = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double ty = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double tz = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        float entityWidth = target.getWidth();
+
+        rotation -= rotationSpeed.get().floatValue();
+        if (rotation <= -360f) rotation += 360f;
+
+        float baseRadius = entityWidth * espSize.get().floatValue() * 0.8f;
+        float alphaMult = animation.getOutput().floatValue();
+
+        matrices.push();
+        matrices.translate(tx, ty, tz);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+
+        int particles = 40;
+        float helixHeight = entityHeight * 1.2f;
+        float helixTurns = 2.5f;
+
+        for (int i = 0; i < particles; i++) {
+            float progress = i / (float) particles;
+            float angle = (float) ((double) progress * Math.PI * 2.0 * helixTurns) + (float) Math.toRadians(rotation);
+
+            float x = (float) Math.cos(angle) * baseRadius;
+            float z = (float) Math.sin(angle) * baseRadius;
+            float y = progress * helixHeight;
+
+            Color color = getColorForProgress(progress);
+            int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (180 * alphaMult));
+
+            matrices.push();
+            matrices.translate(x, y, z);
+            matrices.multiply(mc.gameRenderer.getCamera().getRotation());
+
+            Matrix4f localMatrix = matrices.peek().getPositionMatrix();
+            float size = 0.06f * (0.5f + progress * 0.5f);
+
+            buffer.vertex(localMatrix, -size, size, 0).texture(0f, 1f).color(rgba);
+            buffer.vertex(localMatrix, size, size, 0).texture(1f, 1f).color(rgba);
+            buffer.vertex(localMatrix, size, -size, 0).texture(1f, 0f).color(rgba);
+            buffer.vertex(localMatrix, -size, -size, 0).texture(0f, 0f).color(rgba);
+
+            matrices.pop();
+        }
+
+        TARGET_ICON_LAYER.apply(GLOW_TEXTURE).draw(buffer.end());
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
+    }
+
+    private void renderShockwave(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double tx = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double ty = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double tz = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        long time = System.currentTimeMillis();
+        float cycleTime = 2000f; // 2 second cycle
+        float progress = (time % (long) cycleTime) / cycleTime;
+
+        float baseRadius = target.getWidth() * espSize.get().floatValue();
+        float maxRadius = baseRadius * 3.0f;
+        float currentRadius = maxRadius * progress;
+        float alphaMult = animation.getOutput().floatValue() * (1.0f - progress);
+
+        matrices.push();
+        matrices.translate(tx, ty + entityHeight * 0.5, tz);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+
+        int segments = 60;
+        Color color = getColorForProgress(progress);
+        int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (150 * alphaMult));
+
+        // Draw expanding ring
+        for (int i = 0; i < segments; i++) {
+            float p1 = i / (float) segments;
+            float p2 = (i + 1) / (float) segments;
+            double a1 = (Math.PI * 2.0) * p1;
+            double a2 = (Math.PI * 2.0) * p2;
+
+            float outerR = currentRadius + 0.1f;
+            float innerR = currentRadius - 0.1f;
+
+            float x1Outer = (float) (Math.cos(a1) * outerR);
+            float z1Outer = (float) (Math.sin(a1) * outerR);
+            float x2Outer = (float) (Math.cos(a2) * outerR);
+            float z2Outer = (float) (Math.sin(a2) * outerR);
+
+            float x1Inner = (float) (Math.cos(a1) * innerR);
+            float z1Inner = (float) (Math.sin(a1) * innerR);
+            float x2Inner = (float) (Math.cos(a2) * innerR);
+            float z2Inner = (float) (Math.sin(a2) * innerR);
+
+            buffer.vertex(matrix, x1Outer, 0, z1Outer).color(rgba);
+            buffer.vertex(matrix, x1Inner, 0, z1Inner).color(rgba);
+            buffer.vertex(matrix, x2Inner, 0, z2Inner).color(rgba);
+            buffer.vertex(matrix, x2Outer, 0, z2Outer).color(rgba);
+        }
+
+        RenderLayers.debugQuads().draw(buffer.end());
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
+    }
+
+    private void renderBlackHole(Render3DEvent event) {
+        LivingEntity target = (LivingEntity) lastTarget;
+        MatrixStack matrices = event.getMatrices();
+        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+
+        double tx = MathHelper.lerp(event.getTickDelta(), target.lastX, target.getX()) - camPos.x;
+        double ty = MathHelper.lerp(event.getTickDelta(), target.lastY, target.getY()) - camPos.y;
+        double tz = MathHelper.lerp(event.getTickDelta(), target.lastZ, target.getZ()) - camPos.z;
+
+        float entityHeight = target.getHeight();
+        float entityWidth = target.getWidth();
+
+        rotation -= rotationSpeed.get().floatValue() * 1.5f;
+        if (rotation <= -360f) rotation += 360f;
+
+        float baseRadius = entityWidth * espSize.get().floatValue() * 1.2f;
+        float alphaMult = animation.getOutput().floatValue();
+
+        matrices.push();
+        matrices.translate(tx, ty + entityHeight * 0.5, tz);
+
+        GlStateManager._enableBlend();
+        GlStateManager._blendFuncSeparate(770, 1, 0, 1);
+        GlStateManager._disableCull();
+        GlStateManager._disableDepthTest();
+        GlStateManager._depthMask(false);
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+
+        int particles = 80;
+        long time = System.currentTimeMillis();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+
+        // Draw swirling particles around center
+        for (int i = 0; i < particles; i++) {
+            float progress = i / (float) particles;
+            float angle = (float) ((double) progress * Math.PI * 4.0) + (float) Math.toRadians(rotation + progress * 360);
+            
+            // Spiral effect - particles get closer to center
+            float spiralRadius = baseRadius * (1.0f - progress * 0.7f);
+            float wobble = (float) Math.sin(time * 0.005 + i * 0.5) * 0.1f;
+            
+            float x = (float) Math.cos(angle) * (spiralRadius + wobble);
+            float z = (float) Math.sin(angle) * (spiralRadius + wobble);
+            float y = (float) Math.sin(time * 0.003 + i * 0.3) * entityHeight * 0.3f;
+
+            Color color = getColorForProgress(progress);
+            int rgba = ColorUtil.getColor(color.getRed(), color.getGreen(), color.getBlue(), (int) (180 * alphaMult));
+
+            matrices.push();
+            matrices.translate(x, y, z);
+            matrices.multiply(mc.gameRenderer.getCamera().getRotation());
+
+            Matrix4f localMatrix = matrices.peek().getPositionMatrix();
+            float size = 0.04f + progress * 0.04f;
+
+            buffer.vertex(localMatrix, -size, size, 0).texture(0f, 1f).color(rgba);
+            buffer.vertex(localMatrix, size, size, 0).texture(1f, 1f).color(rgba);
+            buffer.vertex(localMatrix, size, -size, 0).texture(1f, 0f).color(rgba);
+            buffer.vertex(localMatrix, -size, -size, 0).texture(0f, 0f).color(rgba);
+
+            matrices.pop();
+        }
+
+        TARGET_ICON_LAYER.apply(GLOW_TEXTURE).draw(buffer.end());
+
+        // Draw dark center
+        matrices.push();
+        matrices.multiply(mc.gameRenderer.getCamera().getRotation());
+        Matrix4f centerMatrix = matrices.peek().getPositionMatrix();
+        
+        BufferBuilder centerBuffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        float centerSize = baseRadius * 0.3f;
+        int centerColor = ColorUtil.getColor(20, 0, 40, (int) (200 * alphaMult));
+        
+        centerBuffer.vertex(centerMatrix, -centerSize, centerSize, 0).color(centerColor);
+        centerBuffer.vertex(centerMatrix, centerSize, centerSize, 0).color(centerColor);
+        centerBuffer.vertex(centerMatrix, centerSize, -centerSize, 0).color(centerColor);
+        centerBuffer.vertex(centerMatrix, -centerSize, -centerSize, 0).color(centerColor);
+        
+        RenderLayers.debugQuads().draw(centerBuffer.end());
+        matrices.pop();
+
+        GlStateManager._enableDepthTest();
+        GlStateManager._depthMask(true);
+        GlStateManager._disableBlend();
+        GlStateManager._enableCull();
+
+        matrices.pop();
     }
 
     private void drawTextureQuad(MatrixStack matrices, float size, Identifier texture, float alpha) {

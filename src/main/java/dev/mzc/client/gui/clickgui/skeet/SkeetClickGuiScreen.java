@@ -129,8 +129,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             for (Category cat : Category.values()) {
 
 
-
-
                 boolean selected = cat == currentCategory;
                 boolean hovered = mouseX >= x && mouseX <= x + SIDEBAR_W &&
                         mouseY >= tabY && mouseY <= tabY + 44;
@@ -173,7 +171,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             List<Module> modules = getModulesForCategory();
             int half = (modules.size() + 1) / 2;
 
-
             // Calculate content height WITHOUT rendering
             float leftColumnHeight = calculateColumnHeight(modules.subList(0, Math.min(half, modules.size())));
             float rightColumnHeight = calculateColumnHeight(modules.subList(Math.min(half, modules.size()), modules.size()));
@@ -184,9 +181,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             // Now render with actual scrollY
             float leftEnd = renderColumn(modules.subList(0, Math.min(half, modules.size())), leftX, listY + scrollY, colW, mouseX, mouseY);
             float rightEnd = renderColumn(modules.subList(Math.min(half, modules.size()), modules.size()), rightX, listY + scrollY, colW, mouseX, mouseY);
-
-            maxScroll = Math.max(0, Math.max(leftEnd, rightEnd) - (listY + listH));
-
 
             NanoVGHelper.restore();
             NanoVGHelper.resetScissor();
@@ -202,7 +196,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         return curY;
     }
 
-
     private float calculateColumnHeight(List<Module> modules) {
         float height = 0;
         for (Module module : modules) {
@@ -210,7 +203,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         }
         return height;
     }
-
 
     private float renderModuleGroup(Module module, float gx, float gy, float gw, int mouseX, int mouseY) {
         float groupContentH = 0;
@@ -344,6 +336,7 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
         if (mx >= x && mx <= x + SIDEBAR_W) {
             float tabY = y + 10;
             for (Category cat : Category.values()) {
+
                 if (my >= tabY && my <= tabY + 44) {
                     currentCategory = cat;
                     scrollY = 0;

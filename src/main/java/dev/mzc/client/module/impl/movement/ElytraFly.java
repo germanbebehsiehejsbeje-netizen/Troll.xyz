@@ -66,8 +66,6 @@ public class ElytraFly extends Module {
             if (!mc.player.isGliding() && !mc.player.isOnGround() && mc.player.fallDistance > 0) {
                 mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
             }
-        } else if (mode.get() == Mode.HwElytraFly) {
-            handleHwElytraFly();
         }
     }
 
@@ -152,42 +150,9 @@ public class ElytraFly extends Module {
         return new double[]{posX, posZ};
     }
 
-    private void handleHwElytraFly() {
-        // HwElytraFly mode for HolyWorld server
-        // Automatically takes off and flies upward using elytra
-        
-        if (mc.player.isOnGround()) {
-            // On ground - jump and prepare for takeoff
-            mc.player.jump();
-            mc.player.setVelocity(mc.player.getVelocity().x, 0.42, mc.player.getVelocity().z);
-            mc.player.setPitch(-90.0f);
-        } else if (!mc.player.isGliding()) {
-            // In air but not gliding - start elytra flight
-            if (mc.player.fallDistance > 0 || mc.player.getVelocity().y > 0) {
-                mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                mc.player.setVelocity(mc.player.getVelocity().x, 0.5, mc.player.getVelocity().z);
-                mc.player.setPitch(-90.0f);
-            }
-        }
-        
-        // Always reset pitch to 0 for stable flight
-        mc.player.setPitch(0.0f);
-        
-        // Continuous upward motion when airborne
-        if (!mc.player.isOnGround() && mc.player.isGliding()) {
-            mc.player.setVelocity(mc.player.getVelocity().x, 0.36, mc.player.getVelocity().z);
-            
-            // Apply forward strafe if speed is set
-            if (speed.get() > 0) {
-                MovementUtil.strafe(speed.get());
-            }
-        }
-    }
-
     public enum Mode {
         Control,
-        Boost,
-        HwElytraFly
+        Boost
     }
 
     @EventHandler

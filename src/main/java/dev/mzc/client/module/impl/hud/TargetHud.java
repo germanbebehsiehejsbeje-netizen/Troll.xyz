@@ -25,7 +25,11 @@ import java.util.List;
 public class TargetHud extends HudModule {
 
     public enum HudStyle {
-        GAMESENSE, MODERN_BLUR, RISE, TENACITY, SPIRT, SEASON, RISE_NEW
+<<<<<<< HEAD
+        GAMESENSE, MODERN_BLUR, RISE, TENACITY, SPIRT, SEASON, RISE_NEW, SIMPLE
+=======
+        GAMESENSE, MODERN_BLUR, RISE, TENACITY
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
     }
 
     public enum AvatarPos {
@@ -61,15 +65,21 @@ public class TargetHud extends HudModule {
 
         float offset = 0;
         for (LivingEntity target : targets) {
+<<<<<<< HEAD
             if (hudStyle.get() == HudStyle.SPIRT) {
                 renderSpirt(context, target, x, y + offset, 1.0f);
             } else if (hudStyle.get() == HudStyle.SEASON) {
                 renderSeason(context, target, x, y + offset, 1.0f);
             } else if (hudStyle.get() == HudStyle.RISE_NEW) {
                 renderRiseNew(context, target, x, y + offset, 1.0f);
+            } else if (hudStyle.get() == HudStyle.SIMPLE) {
+                renderSimple(context, target, x, y + offset, 1.0f);
             } else {
                 renderGamesense(context, target, x, y + offset, 1.0f);
             }
+=======
+            renderGamesense(context, target, x, y + offset, 1.0f);
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
             offset += (height + 5);
         }
 
@@ -169,6 +179,7 @@ public class TargetHud extends HudModule {
             PlayerSkinDrawer.draw(context, playerListEntry.getSkinTextures(), (int) x, (int) y, (int) size);
         }
     }
+<<<<<<< HEAD
 
     private void renderSpirt(DrawContext context, LivingEntity target, float baseX, float baseY, float alpha) {
         float s = hudScale.get().floatValue();
@@ -448,4 +459,80 @@ public class TargetHud extends HudModule {
         // Текст внутри круга
         NanoVGHelper.drawCenteredString(text, cx, cy + 0.5f * s, font, 6.5f * s, Color.WHITE);
     }
+
+    private void renderSimple(DrawContext context, LivingEntity target, float baseX, float baseY, float alpha) {
+        float s = hudScale.get().floatValue();
+        
+        // Update dimensions for Simple style
+        this.width = 140f * s;
+        this.height = 42f * s;
+
+        // Color palette from screenshot
+        Color bgMain = new Color(50, 35, 25, 230);       // Brown-charcoal matte background
+        Color textWhite = new Color(240, 240, 245);      // Main white text
+        Color healthColor = new Color(65, 175, 115);     // Light green health bar
+        Color healthBarBg = new Color(25, 20, 20, 150);  // Dark background for health bar
+        Color cyanLineColor = new Color(0, 190, 220);    // Turquoise decorative bottom line
+
+        NanoVGRenderer.INSTANCE.draw(vg -> {
+            // 1. Draw flat background (no rounded corners)
+            NanoVGHelper.drawRect(baseX, baseY, width, height, bgMain);
+
+            float pad = 4f * s;
+            float avatarSize = height - (pad * 2) - (6f * s); // Leave space at bottom for dual bars
+
+            // 2. Draw avatar (Left side)
+            float avatarX = baseX + pad + 2f * s;
+            float avatarY = baseY + pad + 1f * s;
+            if (target instanceof PlayerEntity player) {
+                drawPlayerAvatar(context, player, avatarX, avatarY, avatarSize, alpha);
+            } else {
+                NanoVGHelper.drawRect(avatarX, avatarY, avatarSize, avatarSize, new Color(40, 50, 70));
+            }
+
+            // Coordinates for text block to the right of head
+            float contentX = avatarX + avatarSize + 6f * s;
+            int font = FontLoader.regular((int) (12 * s));
+
+            // 3. Display Nickname
+            String name = target.getName().getString();
+            NanoVGHelper.drawString(name, contentX, baseY + 6f * s, font, 12f * s,
+                    NanoVG.NVG_ALIGN_LEFT, textWhite);
+
+            // Calculate stats
+            float currentHp = HealthUtil.getEntityHealth(target);
+            float maxHp = HealthUtil.getEntityMaxHealth(target);
+            float hpPct = Math.min(1f, Math.max(0f, currentHp / maxHp));
+            float distance = mc.player != null ? mc.player.distanceTo(target) : 0f;
+
+            // 4. Display health text ("Health: 18.0")
+            String healthText = String.format("Health: %.1f", currentHp);
+            NanoVGHelper.drawString(healthText, contentX, baseY + 18f * s, font, 11f * s,
+                    NanoVG.NVG_ALIGN_LEFT, textWhite);
+
+            // 5. Display distance in meters ("Distance: 2.3m")
+            String distanceText = String.format("Distance: %.1fm", distance);
+            NanoVGHelper.drawString(distanceText, contentX, baseY + 29f * s, font, 11f * s,
+                    NanoVG.NVG_ALIGN_LEFT, textWhite);
+
+            // Coordinates for bottom indicator lines
+            float barsX = avatarX;
+            float barsW = width - (barsX - baseX) - 6f * s;
+            
+            // 6. First line: Health bar (Green)
+            float healthBarY = baseY + height - 7f * s;
+            float healthBarH = 2f * s;
+            NanoVGHelper.drawRect(barsX, healthBarY, barsW, healthBarH, healthBarBg); // Background
+            if (hpPct > 0) {
+                NanoVGHelper.drawRect(barsX, healthBarY, barsW * hpPct, healthBarH, healthColor);
+            }
+
+            // 7. Second line: Decorative static turquoise separator (Bottom edge)
+            float cyanLineY = healthBarY + healthBarH + 1.5f * s;
+            float cyanLineH = 1.5f * s;
+            NanoVGHelper.drawRect(barsX, cyanLineY, barsW, cyanLineH, cyanLineColor);
+        });
+    }
+=======
+>>>>>>> parent of 584bcf3 (update fixed movecorection and elytra rezolver)
 }

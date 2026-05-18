@@ -52,8 +52,7 @@ public class CommandManager {
                 new SaveCommand(),
                 new ToggleCommand(),
                 new MZCCommand(),
-                new BaritoneBridgeCommand(),
-                new CfgCommand()
+                new BaritoneBridgeCommand()
         );
 
         for (Command command : commands) {

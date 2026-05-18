@@ -31,14 +31,14 @@ import java.util.List;
 
 public class ConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    public static final Path CONFIG_DIR = Paths.get("trollhack");
-    private static final Path MODULES_CONFIG_FILE = CONFIG_DIR.resolve("config.troll");
-    public static final Path CONFIGS_DIR = CONFIG_DIR.resolve("configs");
-    private static final Path CLICKGUI_FILE = CONFIG_DIR.resolve("clickgui.troll");
-    private static final Path ACCOUNTS_FILE = CONFIG_DIR.resolve("accounts.troll");
-    private static final Path ENCRYPTED_ACCOUNTS_FILE = CONFIG_DIR.resolve("accounts_enc.troll");
-    private static final Path FRIENDS_FILE = CONFIG_DIR.resolve("friends.troll");
-    private static final Path HOMES_FILE = CONFIG_DIR.resolve("homes.troll");
+    public static final Path CONFIG_DIR = Paths.get("sakura-config");
+    private static final Path MODULES_DIR = CONFIG_DIR.resolve("modules");
+    private static final Path CONFIGS_DIR = CONFIG_DIR.resolve("configs");
+    private static final Path CLICKGUI_FILE = CONFIG_DIR.resolve("clickgui.json");
+    private static final Path ACCOUNTS_FILE = CONFIG_DIR.resolve("accounts.json");
+    private static final Path ENCRYPTED_ACCOUNTS_FILE = CONFIG_DIR.resolve("accounts_enc.json");
+    private static final Path FRIENDS_FILE = CONFIG_DIR.resolve("friends.json");
+    private static final Path HOMES_FILE = CONFIG_DIR.resolve("homes.json");
 
     private String currentPassword = null;
 
@@ -56,6 +56,9 @@ public class ConfigManager {
         try {
             if (!Files.exists(CONFIG_DIR)) {
                 Files.createDirectories(CONFIG_DIR);
+            }
+            if (!Files.exists(MODULES_DIR)) {
+                Files.createDirectories(MODULES_DIR);
             }
             if (!Files.exists(CONFIGS_DIR)) {
                 Files.createDirectories(CONFIGS_DIR);
@@ -79,7 +82,7 @@ public class ConfigManager {
             if (!Files.exists(configDir)) {
                 Files.createDirectories(configDir);
             }
-            saveModules(configDir.resolve("config.troll"));
+            saveModules(configDir);
             return true;
         } catch (IOException e) {
             Sakura.LOGGER.error("Failed to save config {}: {}", name, e.getMessage());
@@ -89,11 +92,10 @@ public class ConfigManager {
 
     public boolean loadConfig(String name) {
         Path configDir = CONFIGS_DIR.resolve(name);
-        Path configFile = configDir.resolve("config.troll");
-        if (!Files.exists(configFile)) {
+        if (!Files.exists(configDir)) {
             return false;
         }
-        loadModules(configFile);
+        loadModules(configDir);
         return true;
     }
 
@@ -222,10 +224,12 @@ public class ConfigManager {
             String jsonString = GSON.toJson(array);
 
             if (currentPassword != null) {
+                // 加密保存
                 try {
                     String encrypted = encrypt(jsonString, currentPassword);
                     Files.writeString(ENCRYPTED_ACCOUNTS_FILE, encrypted, StandardCharsets.UTF_8);
 
+                    // 如果存在明文文件则删除
                     if (Files.exists(ACCOUNTS_FILE)) {
                         Files.delete(ACCOUNTS_FILE);
                     }
@@ -233,11 +237,13 @@ public class ConfigManager {
                     Sakura.LOGGER.error("Failed to encrypt accounts: {}", e.getMessage());
                 }
             } else {
+                // 明文保存
                 try (Writer writer = new OutputStreamWriter(
                         new FileOutputStream(ACCOUNTS_FILE.toFile()), StandardCharsets.UTF_8)) {
                     writer.write(jsonString);
                 }
 
+                // 如果存在加密文件则删除
                 if (Files.exists(ENCRYPTED_ACCOUNTS_FILE)) {
                     Files.delete(ENCRYPTED_ACCOUNTS_FILE);
                 }
@@ -352,15 +358,20 @@ public class ConfigManager {
     }
 
     private void saveModules() {
-        saveModules(MODULES_CONFIG_FILE);
+        saveModules(MODULES_DIR);
     }
 
-    private void saveModules(Path configFile) {
-        JsonObject root = new JsonObject();
-        JsonObject modulesObject = new JsonObject();
-
+    private void saveModules(Path dir) {
         for (Module module : Sakura.MODULES.getAllModules()) {
+            saveModule(module, dir);
+        }
+    }
+
+    private void saveModule(Module module, Path dir) {
+        try {
+            Path moduleFile = dir.resolve(module.getEnglishName() + ".json");
             JsonObject moduleObject = new JsonObject();
+
             moduleObject.addProperty("enabled", module.isEnabled());
             moduleObject.addProperty("keybind", module.getKey());
             moduleObject.addProperty("bindMode", module.getBindMode().name());
@@ -377,77 +388,78 @@ public class ConfigManager {
             }
             moduleObject.add("values", valuesObject);
 
-            modulesObject.add(module.getEnglishName(), moduleObject);
-        }
-
-        root.add("modules", modulesObject);
-
-        try (Writer writer = new OutputStreamWriter(
-                new FileOutputStream(configFile.toFile()), StandardCharsets.UTF_8)) {
-            GSON.toJson(root, writer);
+            try (Writer writer = new OutputStreamWriter(
+                    new FileOutputStream(moduleFile.toFile()), StandardCharsets.UTF_8)) {
+                GSON.toJson(moduleObject, writer);
+            }
         } catch (IOException e) {
-            Sakura.LOGGER.error("Failed to save modules config: {}", e.getMessage());
+            Sakura.LOGGER.error("Failed to save module {}: {}", module.getEnglishName(), e.getMessage());
         }
     }
 
     private void loadModules() {
-        loadModules(MODULES_CONFIG_FILE);
+        loadModules(MODULES_DIR);
     }
 
-    private void loadModules(Path configFile) {
-        if (!Files.exists(configFile)) return;
-
+    private void loadModules(Path dir) {
         try {
-            String content = Files.readString(configFile);
-            JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+            if (!Files.exists(dir)) return;
 
-            if (!root.has("modules")) return;
-
-            JsonObject modulesObject = root.getAsJsonObject("modules");
-
-            for (String moduleName : modulesObject.keySet()) {
-                Module module = Sakura.MODULES.getModuleByString(moduleName);
-                if (module == null) continue;
-
-                JsonObject moduleObject = modulesObject.getAsJsonObject(moduleName);
-
-                if (moduleObject.has("enabled")) {
-                    module.setState(moduleObject.get("enabled").getAsBoolean());
-                }
-                if (moduleObject.has("keybind")) {
-                    module.setKey(moduleObject.get("keybind").getAsInt());
-                }
-                if (moduleObject.has("bindMode")) {
-                    try {
-                        module.setBindMode(Module.BindMode.valueOf(moduleObject.get("bindMode").getAsString()));
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
-                if (moduleObject.has("suffix")) {
-                    module.setSuffix(moduleObject.get("suffix").getAsString());
-                }
-
-                if (module instanceof HudModule hudModule) {
-                    if (moduleObject.has("hudX")) {
-                        hudModule.setX(moduleObject.get("hudX").getAsFloat());
-                    }
-                    if (moduleObject.has("hudY")) {
-                        hudModule.setY(moduleObject.get("hudY").getAsFloat());
-                    }
-                }
-
-                if (moduleObject.has("values")) {
-                    JsonObject valuesObject = moduleObject.getAsJsonObject("values");
-                    for (Value<?> value : module.getValues()) {
-                        if (valuesObject.has(value.getName())) {
-                            JsonElement valueElement = valuesObject.get(value.getName());
-                            loadValue(value, valueElement);
+            Files.list(dir)
+                    .filter(path -> path.toString().endsWith(".json"))
+                    .forEach(path -> {
+                        String moduleName = path.getFileName().toString();
+                        moduleName = moduleName.substring(0, moduleName.length() - 5);
+                        Module module = Sakura.MODULES.getModuleByString(moduleName);
+                        if (module != null) {
+                            loadModule(module, path);
                         }
+                    });
+        } catch (IOException e) {
+            Sakura.LOGGER.error("Failed to load modules: {}", e.getMessage());
+        }
+    }
+
+    private void loadModule(Module module, Path path) {
+        try {
+            JsonObject moduleObject = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+
+            if (moduleObject.has("enabled")) {
+                module.setState(moduleObject.get("enabled").getAsBoolean());
+            }
+            if (moduleObject.has("keybind")) {
+                module.setKey(moduleObject.get("keybind").getAsInt());
+            }
+            if (moduleObject.has("bindMode")) {
+                try {
+                    module.setBindMode(Module.BindMode.valueOf(moduleObject.get("bindMode").getAsString()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (moduleObject.has("suffix")) {
+                module.setSuffix(moduleObject.get("suffix").getAsString());
+            }
+
+            if (module instanceof HudModule hudModule) {
+                if (moduleObject.has("hudX")) {
+                    hudModule.setX(moduleObject.get("hudX").getAsFloat());
+                }
+                if (moduleObject.has("hudY")) {
+                    hudModule.setY(moduleObject.get("hudY").getAsFloat());
+                }
+            }
+
+            if (moduleObject.has("values")) {
+                JsonObject valuesObject = moduleObject.getAsJsonObject("values");
+                for (Value<?> value : module.getValues()) {
+                    if (valuesObject.has(value.getName())) {
+                        JsonElement valueElement = valuesObject.get(value.getName());
+                        loadValue(value, valueElement);
                     }
                 }
             }
         } catch (IOException e) {
-            Sakura.LOGGER.error("Failed to load modules config: {}", e.getMessage());
+            Sakura.LOGGER.error("Failed to load module {}: {}", module.getEnglishName(), e.getMessage());
         }
     }
 
@@ -496,8 +508,9 @@ public class ConfigManager {
                     new FileOutputStream(CLICKGUI_FILE.toFile()), StandardCharsets.UTF_8)) {
                 GSON.toJson(clickGuiObject, writer);
             }
+            System.out.println("ClickGui saved to: " + CLICKGUI_FILE);
         } catch (IOException e) {
-            Sakura.LOGGER.error("Failed to save clickgui: {}", e.getMessage());
+            System.err.println("Failed to save clickgui: " + e.getMessage());
         }
     }
 
@@ -651,6 +664,7 @@ public class ConfigManager {
                         }
                     }
                 } else if (valueElement.isJsonPrimitive()) {
+                    // Compatibility: if old configs contain a single number, use it for both bounds.
                     if (rangeValue.getMinValue() instanceof Integer) {
                         int single = valueElement.getAsInt();
                         ((RangeValue<Integer>) rangeValue).set(single, single);
@@ -691,7 +705,7 @@ public class ConfigManager {
                         }
                     } else if (listValue.getType() == ListValue.Type.ENTITY) {
                         net.minecraft.entity.EntityType<?> entityType = net.minecraft.registry.Registries.ENTITY_TYPE.get(net.minecraft.util.Identifier.of(id));
-                        if (entityType != net.minecraft.entity.EntityType.PIG || id.equals("minecraft:pig")) {
+                        if (entityType != net.minecraft.entity.EntityType.PIG || id.equals("minecraft:pig")) { // Default is PIG if not found, usually checks validation
                              castedList.add(entityType);
                         }
                     } else if (listValue.getType() == ListValue.Type.ITEM) {
@@ -718,7 +732,7 @@ public class ConfigManager {
                 }
             }
         } catch (Exception e) {
-            Sakura.LOGGER.error("Failed to load value {}: {}", value.getName(), e.getMessage());
+            System.err.println("Failed to load value " + value.getName() + ": " + e.getMessage());
         }
     }
 
@@ -731,14 +745,14 @@ public class ConfigManager {
                     .forEach(path -> configs.add(path.getFileName().toString()));
             configs.sort(String.CASE_INSENSITIVE_ORDER);
         } catch (IOException e) {
-            Sakura.LOGGER.error("Failed to list configs: {}", e.getMessage());
+            System.err.println("Failed to list configs: " + e.getMessage());
         }
         return configs;
     }
 
     public void savePrefix(String prefix) {
         try {
-            Path prefixFile = CONFIG_DIR.resolve("prefix.troll");
+            Path prefixFile = CONFIG_DIR.resolve("prefix.json");
             JsonObject prefixObject = new JsonObject();
             prefixObject.addProperty("prefix", prefix);
 
@@ -753,7 +767,7 @@ public class ConfigManager {
 
     public String loadPrefix() {
         try {
-            Path prefixFile = CONFIG_DIR.resolve("prefix.troll");
+            Path prefixFile = CONFIG_DIR.resolve("prefix.json");
             if (!Files.exists(prefixFile)) return ".";
 
             String content = new String(Files.readAllBytes(prefixFile), StandardCharsets.UTF_8);
