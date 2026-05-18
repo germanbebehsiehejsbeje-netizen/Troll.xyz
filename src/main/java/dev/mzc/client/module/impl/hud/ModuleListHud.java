@@ -31,9 +31,7 @@ public class ModuleListHud extends HudModule {
         Sakura(),
         Vape(),
         LiquidGlass(),
-        Gradient(),
-        Season(),
-        Purple();
+        Gradient();
         Style() {
         }
     }
@@ -253,10 +251,6 @@ public class ModuleListHud extends HudModule {
                 renderVapeContent();
             } else if (style.get() == Style.LiquidGlass) {
                 renderLiquidGlassContent();
-            } else if (style.get() == Style.Season) {
-                renderSeasonContent();
-            } else if (style.get() == Style.Purple) {
-                renderPurpleContent();
             } else {
                 renderGradientContent();
             }
@@ -288,10 +282,6 @@ public class ModuleListHud extends HudModule {
                 renderVapeContent();
             } else if (style.get() == Style.LiquidGlass) {
                 renderLiquidGlassContent();
-            } else if (style.get() == Style.Season) {
-                renderSeasonContent();
-            } else if (style.get() == Style.Purple) {
-                renderPurpleContent();
             } else {
                 renderGradientContent();
             }
@@ -302,8 +292,6 @@ public class ModuleListHud extends HudModule {
         if (style.get() == Style.Sakura) return hudScale.get().floatValue();
         if (style.get() == Style.Vape) return vapeScale.get().floatValue();
         if (style.get() == Style.LiquidGlass) return liquidGlassScale.get().floatValue();
-        if (style.get() == Style.Season) return 1.0f;
-        if (style.get() == Style.Purple) return 1.0f;
         return gradientScale.get().floatValue();
     }
 
@@ -437,12 +425,6 @@ public class ModuleListHud extends HudModule {
                 if (vapeHideHud.get() && module instanceof HudModule) continue;
             } else if (style.get() == Style.LiquidGlass) {
                 if (liquidGlassHideHud.get() && module instanceof HudModule) continue;
-            } else if (style.get() == Style.Season) {
-                // Season style always excludes HUD modules
-                if (module instanceof HudModule) continue;
-            } else if (style.get() == Style.Purple) {
-                // Purple style always excludes HUD modules
-                if (module instanceof HudModule) continue;
             } else {
                 if (gradientHideHud.get() && module instanceof HudModule) continue;
             }
@@ -1538,156 +1520,6 @@ public class ModuleListHud extends HudModule {
             
             yPos += h * anim;
             index++;
-        }
-    }
-
-    private void renderSeasonContent() {
-        int font = FontLoader.regular(13);
-        float fontSize = 13f;
-        float rowHeight = 14f;
-
-        // Get active modules (excluding HUD modules)
-        List<Module> activeModules = Sakura.MODULES.getAllModules().stream()
-                .filter(Module::isEnabled)
-                .filter(m -> !(m instanceof HudModule))
-                .collect(java.util.stream.Collectors.toList());
-
-        // Sort by text width (longest to shortest)
-        activeModules.sort((m1, m2) -> {
-            String t1 = m1.getSuffix() != null && !m1.getSuffix().isEmpty() ? m1.getDisplayName() + " " + m1.getSuffix() : m1.getDisplayName();
-            String t2 = m2.getSuffix() != null && !m2.getSuffix().isEmpty() ? m2.getDisplayName() + " " + m2.getSuffix() : m2.getDisplayName();
-            float w1 = NanoVGHelper.getTextWidth(t1, font, fontSize);
-            float w2 = NanoVGHelper.getTextWidth(t2, font, fontSize);
-            return Float.compare(w2, w1);
-        });
-
-        if (activeModules.isEmpty()) return;
-
-        // Screen coordinates
-        float screenWidth = mc.getWindow().getScaledWidth();
-        float startX = screenWidth - 2f;
-        float currentY = y + 4f;
-
-        // Season style colors
-        Color textCyan = new Color(0, 210, 210);
-        Color textWhite = new Color(245, 245, 245);
-        Color edgeLineColor = new Color(0, 230, 230, 200);
-        Color shadowColor = new Color(0, 0, 0, 120);
-
-        float tempY = currentY;
-
-        for (Module mod : activeModules) {
-            String displayName = mod.getSuffix() != null && !mod.getSuffix().isEmpty() 
-                    ? mod.getDisplayName() + " " + mod.getSuffix() 
-                    : mod.getDisplayName();
-            float textWidth = NanoVGHelper.getTextWidth(displayName, font, fontSize);
-
-            // Right-aligned X coordinate
-            float textX = startX - textWidth - 4f;
-
-            // Background shadow for readability
-            NanoVGHelper.drawRect(textX - 2f, tempY, textWidth + 6f, rowHeight, new Color(0, 0, 0, 30));
-
-            // Text shadow
-            NanoVGHelper.drawString(displayName, textX + 0.5f, tempY + rowHeight / 2f + 0.5f, font, fontSize,
-                    NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, shadowColor);
-
-            // Render text with suffix coloring
-            if (mod.getSuffix() != null && !mod.getSuffix().isEmpty()) {
-                String baseName = mod.getDisplayName() + " ";
-                String suffix = mod.getSuffix();
-
-                // Base name in cyan
-                NanoVGHelper.drawString(baseName, textX, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textCyan);
-
-                // Suffix in white
-                float baseWidth = NanoVGHelper.getTextWidth(baseName, font, fontSize);
-                NanoVGHelper.drawString(suffix, textX + baseWidth, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textWhite);
-            } else {
-                // No suffix, full text in cyan
-                NanoVGHelper.drawString(displayName, textX, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textCyan);
-            }
-
-            // Neon edge line on the right
-            NanoVGHelper.drawRect(startX - 1.5f, tempY, 1.5f, rowHeight, edgeLineColor);
-
-            tempY += rowHeight;
-        }
-    }
-
-    private void renderPurpleContent() {
-        int font = FontLoader.regular(13);
-        float fontSize = 13f;
-        float rowHeight = 15f;
-
-        // Get active modules (excluding HUD modules)
-        List<Module> activeModules = Sakura.MODULES.getAllModules().stream()
-                .filter(Module::isEnabled)
-                .filter(m -> !(m instanceof HudModule))
-                .collect(java.util.stream.Collectors.toList());
-
-        // Sort by text width (longest to shortest)
-        activeModules.sort((m1, m2) -> {
-            String t1 = m1.getSuffix() != null && !m1.getSuffix().isEmpty() ? m1.getDisplayName() + " " + m1.getSuffix() : m1.getDisplayName();
-            String t2 = m2.getSuffix() != null && !m2.getSuffix().isEmpty() ? m2.getDisplayName() + " " + m2.getSuffix() : m2.getDisplayName();
-            float w1 = NanoVGHelper.getTextWidth(t1, font, fontSize);
-            float w2 = NanoVGHelper.getTextWidth(t2, font, fontSize);
-            return Float.compare(w2, w1);
-        });
-
-        if (activeModules.isEmpty()) return;
-
-        // Screen coordinates
-        float screenWidth = mc.getWindow().getScaledWidth();
-        float startX = screenWidth;
-        float currentY = y + 2f;
-
-        // Purple neon palette
-        Color textPurple = new Color(175, 0, 190);
-        Color textWhite = new Color(245, 245, 245);
-        Color rightLineColor = new Color(210, 0, 220);
-        Color bgShadow = new Color(0, 0, 0, 140);
-
-        float tempY = currentY;
-
-        for (Module mod : activeModules) {
-            String displayName = mod.getSuffix() != null && !mod.getSuffix().isEmpty()
-                    ? mod.getDisplayName() + " " + mod.getSuffix()
-                    : mod.getDisplayName();
-            float textWidth = NanoVGHelper.getTextWidth(displayName, font, fontSize);
-
-            // Right-aligned X coordinate
-            float textX = startX - textWidth - 6f;
-
-            // Background shadow
-            NanoVGHelper.drawRect(textX - 3f, tempY, textWidth + 6f, rowHeight, bgShadow);
-
-            // Render text with suffix coloring
-            if (mod.getSuffix() != null && !mod.getSuffix().isEmpty()) {
-                String baseName = mod.getDisplayName() + " ";
-                String suffix = mod.getSuffix();
-
-                // Module name in purple
-                NanoVGHelper.drawString(baseName, textX, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textPurple);
-
-                // Suffix in white
-                float baseWidth = NanoVGHelper.getTextWidth(baseName, font, fontSize);
-                NanoVGHelper.drawString(suffix, textX + baseWidth, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textWhite);
-            } else {
-                // No suffix, full text in purple
-                NanoVGHelper.drawString(displayName, textX, tempY + rowHeight / 2f, font, fontSize,
-                        NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE, textPurple);
-            }
-
-            // Vertical neon line on the right edge
-            NanoVGHelper.drawRect(startX - 1.5f, tempY, 1.5f, rowHeight, rightLineColor);
-
-            tempY += rowHeight;
         }
     }
 

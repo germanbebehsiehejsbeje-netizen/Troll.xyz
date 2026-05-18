@@ -10,27 +10,18 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.particle.SimpleParticleType;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntry; // Import this
 import dev.mzc.client.events.packet.PacketEvent;
 import dev.mzc.client.events.EventType;
-import dev.mzc.client.events.entity.AttackEvent;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import dev.mzc.client.mixin.accessor.IPlayerInteractEntityC2SPacket;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import dev.mzc.client.particle.CustomHitParticle;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.awt.*;
 
 public class AttackEffect extends Module {
     public enum ParticleMode {
+        // ... (keep as is)
         HEART(ParticleTypes.HEART),
         FLAME(ParticleTypes.FLAME),
         VILLAGER_HAPPY(ParticleTypes.HAPPY_VILLAGER),
@@ -41,17 +32,11 @@ public class AttackEffect extends Module {
         LAVA(ParticleTypes.LAVA),
         ENCHANT(ParticleTypes.ENCHANT),
         WITCH(ParticleTypes.WITCH),
-        DAMAGE(ParticleTypes.DAMAGE_INDICATOR),
-        CUSTOM(); // Custom particle with physics
-        
+        DAMAGE(ParticleTypes.DAMAGE_INDICATOR);
         private final SimpleParticleType effect;
 
         ParticleMode(SimpleParticleType effect) {
             this.effect = effect;
-        }
-        
-        ParticleMode() {
-            this.effect = null;
         }
 
         public ParticleEffect getEffect() {
@@ -96,97 +81,10 @@ public class AttackEffect extends Module {
     public final NumberValue<Double> volume = new NumberValue<>("Volume", 1.0, 0.1, 2.0, 0.1, () -> !sound.is(SoundMode.NONE));
     public final NumberValue<Double> pitch = new NumberValue<>("Pitch", 1.0, 0.5, 2.0, 0.1, () -> !sound.is(SoundMode.NONE));
     public final BoolValue checkCooldown = new BoolValue("Check Cooldown", true);
-    public final NumberValue<Integer> particleCount = new NumberValue<>("Particle Count", 8, 1, 20, 1);
-    public final BoolValue enablePhysics = new BoolValue("Enable Physics", true);
-    
-    private final List<CustomHitParticle> customParticles = new ArrayList<>();
 
     public AttackEffect() {
         super("AttackEffect", Category.Render);
         this.setType(ModuleType.All);
-    }
-
-    @EventHandler
-    public void onAttack(AttackEvent event) {
-        if (!isEnabled()) return;
-        if (mc.player == null || mc.world == null) return;
-        
-        if (checkCooldown.get() && mc.player.getAttackCooldownProgress(0.5f) < 0.9f) {
-            return;
-        }
-
-        Entity target = event.getTargetEntity();
-        if (!(target instanceof LivingEntity)) return;
-
-        // Get hit position from event or calculate from entity
-        Vec3d hitPos = event.getHitPos();
-        if (hitPos == null) {
-            hitPos = target.getBoundingBox().getCenter();
-        }
-
-        // Spawn particles at exact hit location
-        int count = particleCount.get();
-        for (int i = 0; i < count; i++) {
-            spawnParticleAtLocation(hitPos);
-        }
-    }
-
-    private void spawnParticleAtLocation(Vec3d hitPos) {
-        if (particle.is(ParticleMode.CUSTOM)) {
-            // Spawn custom particle with physics
-            if (enablePhysics.get()) {
-                spawnCustomParticle(hitPos);
-            } else {
-                spawnVanillaParticle(hitPos);
-            }
-        } else {
-            // Spawn vanilla particle
-            spawnVanillaParticle(hitPos);
-        }
-    }
-
-    private void spawnCustomParticle(Vec3d hitPos) {
-        // Generate random velocity for burst effect
-        double vx = (Math.random() * 2.0 - 1.0) * 0.4 * velocityMultiplier.get();
-        double vy = Math.random() * 0.4 * velocityMultiplier.get();
-        double vz = (Math.random() * 2.0 - 1.0) * 0.4 * velocityMultiplier.get();
-
-        // Create custom particle with physics
-        CustomHitParticle customParticle = new CustomHitParticle(
-            (ClientWorld) mc.world,
-            hitPos.x, hitPos.y, hitPos.z,
-            vx, vy, vz
-        );
-
-        // Apply life multiplier
-        int newMaxAge = (int) (30 * lifeMultiplier.get());
-        customParticle.maxAge = Math.max(1, newMaxAge);
-
-        // Add to particle list
-        customParticles.add(customParticle);
-    }
-
-    private void spawnVanillaParticle(Vec3d hitPos) {
-        // Generate random velocity for burst effect
-        double vx = (Math.random() * 2.0 - 1.0) * 0.4 * velocityMultiplier.get();
-        double vy = Math.random() * 0.4 * velocityMultiplier.get();
-        double vz = (Math.random() * 2.0 - 1.0) * 0.4 * velocityMultiplier.get();
-
-        // Spawn vanilla particle
-        mc.particleManager.addParticle(
-            particle.get().getEffect(),
-            hitPos.x, hitPos.y, hitPos.z,
-            vx, vy, vz
-        );
-    }
-
-    @EventHandler
-    public void onTick(dev.mzc.client.events.client.TickEvent event) {
-        if (!isEnabled()) return;
-        
-        // Update custom particles
-        customParticles.removeIf(p -> p.dead);
-        customParticles.forEach(CustomHitParticle::tick);
     }
 
     @EventHandler

@@ -118,7 +118,6 @@ public class ClickGui extends Module {
 
     public static Value<Boolean> backgroundBlur = new BoolValue("Background Blur", true, () -> style.is(GuiStyle.Sakura) || style.is(GuiStyle.Skaji) || style.is(GuiStyle.Vulkan) || style.is(GuiStyle.Augustus));
     public static Value<Double> blurStrength = new NumberValue<>("Blur Strength", 8.0, 1.0, 20.0, 0.5, extra(() -> (style.is(GuiStyle.Sakura) || style.is(GuiStyle.Skaji) || style.is(GuiStyle.Vulkan) || style.is(GuiStyle.Augustus)) && backgroundBlur.get()));
-    public static Value<Boolean> shaderBackground = new BoolValue("Shader Background", false, () -> style.is(GuiStyle.Sakura) || style.is(GuiStyle.Skaji));
     public static final Value<Boolean> bjdOnly = new BoolValue("BJD Only", false, () -> false);
 
     public static Value.Dependency extra(Value.Dependency dependency) {
