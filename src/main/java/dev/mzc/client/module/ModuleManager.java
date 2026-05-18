@@ -104,6 +104,7 @@ public class ModuleManager {
 
         // Player
         add(new AutoArmor());
+        add(new AutoBrew());
         add(new Blink());
         add(new FakePlayer());
         add(new GhostHand());
@@ -215,6 +216,8 @@ public class ModuleManager {
         add(new NotificationHud());
         add(new NotifyHud());
         add(new TargetHud());
+        add(new SimpleTargetHud());
+        add(new V2SimpleTargetHud());
         add(new PotionHud());
         add(new ArmorHud());
         add(new HandItemHud());

@@ -128,7 +128,6 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
             float tabY = y + 10;
             for (Category cat : Category.values()) {
 
-
                 boolean selected = cat == currentCategory;
                 boolean hovered = mouseX >= x && mouseX <= x + SIDEBAR_W &&
                         mouseY >= tabY && mouseY <= tabY + 44;
@@ -170,17 +169,19 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
 
             List<Module> modules = getModulesForCategory();
             int half = (modules.size() + 1) / 2;
+            List<Module> leftMods = modules.subList(0, Math.min(half, modules.size()));
+            List<Module> rightMods = modules.subList(Math.min(half, modules.size()), modules.size());
 
             // Calculate content height WITHOUT rendering
-            float leftColumnHeight = calculateColumnHeight(modules.subList(0, Math.min(half, modules.size())));
-            float rightColumnHeight = calculateColumnHeight(modules.subList(Math.min(half, modules.size()), modules.size()));
-            
+            float leftColumnHeight = calculateColumnHeight(leftMods);
+            float rightColumnHeight = calculateColumnHeight(rightMods);
+
             float contentHeight = Math.max(leftColumnHeight, rightColumnHeight);
             maxScroll = Math.max(0, contentHeight - listH);
+            scrollY = MathHelper.clamp(scrollY, -maxScroll, 0);
 
-            // Now render with actual scrollY
-            float leftEnd = renderColumn(modules.subList(0, Math.min(half, modules.size())), leftX, listY + scrollY, colW, mouseX, mouseY);
-            float rightEnd = renderColumn(modules.subList(Math.min(half, modules.size()), modules.size()), rightX, listY + scrollY, colW, mouseX, mouseY);
+            renderColumn(leftMods, leftX, listY + scrollY, colW, mouseX, mouseY);
+            renderColumn(rightMods, rightX, listY + scrollY, colW, mouseX, mouseY);
 
             NanoVGHelper.restore();
             NanoVGHelper.resetScissor();
@@ -419,8 +420,10 @@ public class SkeetClickGuiScreen extends ClickGuiScreen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // Just accumulate the scroll. Clamping happens in render() once we know the content height.
         this.scrollY += (float) (scrollY * 20);
-        this.scrollY = MathHelper.clamp(this.scrollY, -maxScroll, 0);
+        if (this.scrollY > 0) this.scrollY = 0;
+        if (maxScroll > 0 && this.scrollY < -maxScroll) this.scrollY = -maxScroll;
         return true;
     }
 
